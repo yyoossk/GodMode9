@@ -58,11 +58,11 @@ u32 BootFirmHandler(const char* bootpath, bool verbose, bool delete) {
     size_t firm_size = FileGetSize(bootpath);
     if (!firm_size) return 1;
     if (firm_size > FIRM_MAX_SIZE) {
-        if (verbose) ShowPrompt(false, "%s\nFIRM too big, can't boot", pathstr); // unlikely
+        if (verbose) ShowPrompt(false, "%s\nFIRMが大きすぎて起動できません", pathstr); // unlikely
         return 1;
     }
 
-    if (verbose && !ShowPrompt(true, "%s (%dkB)\nWarning: Do not boot FIRMs\nfrom untrusted sources.\n \nBoot FIRM?",
+    if (verbose && !ShowPrompt(true, "%s (%dkB)\n警告: 信頼できないソースから\nFIRMを起動しないで下さい。\n \nBoot FIRM?",
         pathstr, firm_size / 1024))
         return 1;
 
@@ -70,7 +70,7 @@ u32 BootFirmHandler(const char* bootpath, bool verbose, bool delete) {
     if (!firm) return 1;
     if ((FileGetData(bootpath, firm, firm_size, 0) != firm_size) ||
         !IsBootableFirm(firm, firm_size)) {
-        if (verbose) ShowPrompt(false, "%s\nNot a bootable FIRM.", pathstr);
+        if (verbose) ShowPrompt(false, "%s\n起動可能なFIRMではありません。", pathstr);
         free(firm);
         return 1;
     }
@@ -81,7 +81,7 @@ u32 BootFirmHandler(const char* bootpath, bool verbose, bool delete) {
 
     FirmA9LHeader* a9l = (FirmA9LHeader*)(void*) ((u8*) firm + arm9s->offset);
     if (verbose && (ValidateFirmA9LHeader(a9l) == 0) &&
-        ShowPrompt(true, "%s\nFIRM is encrypted.\n \nDecrypt before boot?", pathstr) &&
+        ShowPrompt(true, "%s\nFIRMは暗号化されています。\n \nブート前に復号化しますか?", pathstr) &&
         (DecryptFirmFull(firm, firm_size) != 0)) {
         free(firm);
         return 1;
@@ -90,8 +90,8 @@ u32 BootFirmHandler(const char* bootpath, bool verbose, bool delete) {
     // unsupported location handling
     char fixpath[256] = { 0 };
     if (verbose && (*bootpath != '0') && (*bootpath != '1')) {
-        const char* optionstr[2] = { "Make a copy at " OUTPUT_PATH "/temp.firm", "Try to boot anyways" };
-        u32 user_select = ShowSelectPrompt(2, optionstr, "%s\nWarning: Trying to boot from an\nunsupported location.", pathstr);
+        const char* optionstr[2] = { "以下にコピーしてください。" OUTPUT_PATH "/temp.firm", "起動してみる" };
+        u32 user_select = ShowSelectPrompt(2, optionstr, "%s\n警告: サポートされていない場所\nからの起動を試みています。", pathstr);
         if (user_select == 1) {
             FileSetData(OUTPUT_PATH "/temp.firm", firm, firm_size, 0, true);
             bootpath = OUTPUT_PATH "/temp.firm";
@@ -124,7 +124,7 @@ u32 SplashInit(const char* modestr) {
     u64 splash_size;
     u8* splash = FindVTarFileInfo(VRAM0_SPLASH_PNG, &splash_size);
     const char* namestr = FLAVOR " " VERSION;
-    const char* loadstr = "booting...";
+    const char* loadstr = "起動中...";
     const u32 pos_xb = 10;
     const u32 pos_yb = 10;
     const u32 pos_xu = SCREEN_WIDTH_BOT - 10 - GetDrawStringWidth(loadstr);
@@ -140,7 +140,7 @@ u32 SplashInit(const char* modestr) {
             free(bitmap);
         }
     } else {
-        DrawStringF(TOP_SCREEN, 10, 10, COLOR_STD_FONT, COLOR_TRANSPARENT, "(" VRAM0_SPLASH_PNG " not found)");
+        DrawStringF(TOP_SCREEN, 10, 10, COLOR_STD_FONT, COLOR_TRANSPARENT, "(" VRAM0_SPLASH_PNG " 見当たらない)");
     }
 
     if (modestr) DrawStringF(TOP_SCREEN, SCREEN_WIDTH_TOP - 10 - GetDrawStringWidth(modestr),
@@ -149,10 +149,10 @@ u32 SplashInit(const char* modestr) {
     DrawStringF(BOT_SCREEN, pos_xb, pos_yb, COLOR_STD_FONT, COLOR_STD_BG, "%s\n%*.*s\n%s\n \n \n%s\n%s\n \n%s\n%s",
         namestr, strnlen(namestr, 64), strnlen(namestr, 64),
         "--------------------------------", "https://github.com/d0k3/GodMode9",
-        "Releases:", "https://github.com/d0k3/GodMode9/releases/", // this won't fit with a 8px width font
+        "リリース:", "https://github.com/d0k3/GodMode9/releases/", // this won't fit with a 8px width font
         "Hourlies:", "https://d0k3.secretalgorithm.com/");
     DrawStringF(BOT_SCREEN, pos_xu, pos_yu, COLOR_STD_FONT, COLOR_STD_BG, loadstr);
-    DrawStringF(BOT_SCREEN, pos_xb, pos_yu, COLOR_STD_FONT, COLOR_STD_BG, "built: " DBUILTL);
+    DrawStringF(BOT_SCREEN, pos_xb, pos_yu, COLOR_STD_FONT, COLOR_STD_BG, "構築: " DBUILTL);
 
     return 0;
 }
@@ -246,7 +246,7 @@ void DrawTopBar(const char* curr_path) {
         const u32 bartxt_rx = SCREEN_WIDTH_TOP - (19*FONT_WIDTH_EXT) - bartxt_x;
         char bytestr0[32];
         char bytestr1[32];
-        DrawStringF(TOP_SCREEN, bartxt_rx, bartxt_start, COLOR_STD_BG, COLOR_TOP_BAR, "%19.19s", "LOADING...");
+        DrawStringF(TOP_SCREEN, bartxt_rx, bartxt_start, COLOR_STD_BG, COLOR_TOP_BAR, "%19.19s", "読み込み中...");
         FormatBytes(bytestr0, GetFreeSpace(curr_path));
         FormatBytes(bytestr1, GetTotalSpace(curr_path));
         snprintf(tempstr, 64, "%s/%s", bytestr0, bytestr1);
@@ -301,7 +301,7 @@ void DrawUserInterface(const char* curr_path, DirEntry* curr_entry, u32 curr_pan
 
     // left top - current file info
     if (curr_pane) snprintf(tempstr, 63, "PANE #%lu", curr_pane);
-    else snprintf(tempstr, 63, "CURRENT");
+    else snprintf(tempstr, 63, "現在");
     DrawStringF(MAIN_SCREEN, 2, info_start, COLOR_STD_FONT, COLOR_STD_BG, "[%s]", tempstr);
     // file / entry name
     ResizeString(tempstr, curr_entry->name, str_len_info, 8, false);
@@ -316,12 +316,12 @@ void DrawUserInterface(const char* curr_path, DirEntry* curr_entry, u32 curr_pan
         int drvtype = DriveType(curr_entry->path);
         char drvstr[32];
         snprintf(drvstr, 31, "(%s%s)",
-            ((drvtype & DRV_SDCARD) ? "SD" : (drvtype & DRV_RAMDRIVE) ? "RAMdrive" : (drvtype & DRV_GAME) ? "Game" :
-            (drvtype & DRV_SYSNAND) ? "SysNAND" : (drvtype & DRV_EMUNAND) ? "EmuNAND" : (drvtype & DRV_IMAGE) ? "Image" :
-            (drvtype & DRV_XORPAD) ? "XORpad" : (drvtype & DRV_MEMORY) ? "Memory" : (drvtype & DRV_ALIAS) ? "Alias" :
-            (drvtype & DRV_CART) ? "Gamecart" : (drvtype & DRV_VRAM) ? "VRAM" : (drvtype & DRV_SEARCH) ? "Search" :
-            (drvtype & DRV_TITLEMAN) ? "TitleManager" : ""),
-            ((drvtype & DRV_FAT) ? " FAT" : (drvtype & DRV_VIRTUAL) ? " Virtual" : ""));
+            ((drvtype & DRV_SDCARD) ? "SDカード" : (drvtype & DRV_RAMDRIVE) ? "RAMドライブ" : (drvtype & DRV_GAME) ? "ゲーム" :
+            (drvtype & DRV_SYSNAND) ? "SysNAND" : (drvtype & DRV_EMUNAND) ? "EmuNAND" : (drvtype & DRV_IMAGE) ? "画像" :
+            (drvtype & DRV_XORPAD) ? "XORpad" : (drvtype & DRV_MEMORY) ? "メモリ" : (drvtype & DRV_ALIAS) ? "通称" :
+            (drvtype & DRV_CART) ? "ゲームカード" : (drvtype & DRV_VRAM) ? "VRAM" : (drvtype & DRV_SEARCH) ? "検索" :
+            (drvtype & DRV_TITLEMAN) ? "タイトルマネージャー" : ""),
+            ((drvtype & DRV_FAT) ? " FAT" : (drvtype & DRV_VIRTUAL) ? " バーチャル" : ""));
         ResizeString(tempstr, drvstr, str_len_info, 8, false);
     } else {
         char numstr[32];
@@ -345,14 +345,14 @@ void DrawUserInterface(const char* curr_path, DirEntry* curr_entry, u32 curr_pan
 
     // right top - clipboard
     DrawStringF(MAIN_SCREEN, SCREEN_WIDTH_MAIN - len_info, info_start, COLOR_STD_FONT, COLOR_STD_BG, "%*s",
-        len_info / FONT_WIDTH_EXT, (clipboard->n_entries) ? "[CLIPBOARD]" : "");
+        len_info / FONT_WIDTH_EXT, (clipboard->n_entries) ? "[クリップボード]" : "");
     for (u32 c = 0; c < n_cb_show; c++) {
         u32 color_cb = COLOR_ENTRY(&(clipboard->entry[c]));
         ResizeString(tempstr, (clipboard->n_entries > c) ? clipboard->entry[c].name : "", str_len_info, 8, true);
         DrawStringF(MAIN_SCREEN, SCREEN_WIDTH_MAIN - len_info - 4, info_start + 12 + (c*10), color_cb, COLOR_STD_BG, "%s", tempstr);
     }
     *tempstr = '\0';
-    if (clipboard->n_entries > n_cb_show) snprintf(tempstr, 60, "+ %lu more", clipboard->n_entries - n_cb_show);
+    if (clipboard->n_entries > n_cb_show) snprintf(tempstr, 60, "+ %lu その他", clipboard->n_entries - n_cb_show);
     DrawStringF(MAIN_SCREEN, SCREEN_WIDTH_MAIN - len_info - 4, info_start + 12 + (n_cb_show*10), COLOR_DARKGREY, COLOR_STD_BG,
         "%*s", len_info / FONT_WIDTH_EXT, tempstr);
 
@@ -360,16 +360,16 @@ void DrawUserInterface(const char* curr_path, DirEntry* curr_entry, u32 curr_pan
     char instr[512];
     snprintf(instr, 512, "%s\n%s%s%s%s%s%s%s%s",
         FLAVOR " " VERSION, // generic start part
-        (*curr_path) ? ((clipboard->n_entries == 0) ? "L - MARK files (use with ↑↓→←)\nX - DELETE / [+R] RENAME file(s)\nY - COPY files / [+R] CREATE entry\n" :
-        "L - MARK files (use with ↑↓→←)\nX - DELETE / [+R] RENAME file(s)\nY - PASTE files / [+R] CREATE entry\n") :
-        ((GetWritePermissions() > PERM_BASE) ? "R+Y - Relock write permissions\n" : ""),
-        (*curr_path) ? "" : (GetMountState()) ? "R+X - Unmount image\n" : "",
-        (*curr_path) ? "" : (CheckSDMountState()) ? "R+B - Unmount SD card\n" : "R+B - Remount SD card\n",
-        (*curr_path) ? "R+A - Directory options\n" : "R+A - Drive options\n",
-        "R+L - Make a Screenshot\n",
-        "R+←→ - Switch to prev/next pane\n",
-        (clipboard->n_entries) ? "SELECT - Clear Clipboard\n" : "SELECT - Restore Clipboard\n", // only if clipboard is full
-        "START - Reboot / [+R] Poweroff\nHOME button for HOME menu"); // generic end part
+        (*curr_path) ? ((clipboard->n_entries == 0) ? "L - ファイルをマーク (↑↓→←と併用)\nX - 削除 / [+R] 名前を変更\nY - コピー / [+R] エントリー作成\n" :
+        "L - MARK files (use with ↑↓→←)\nX - 削除 / [+R] 名前の変更\nY - 貼り付け / [+R] エントリー作成\n") :
+        ((GetWritePermissions() > PERM_BASE) ? "R+Y - 書き込み許可の再ロックs\n" : ""),
+        (*curr_path) ? "" : (GetMountState()) ? "R+X - 切断\n" : "",
+        (*curr_path) ? "" : (CheckSDMountState()) ? "R+B - SDカードを切断\n" : "R+B - SDカードの再接続\n",
+        (*curr_path) ? "R+A - ディレクトリオプション\n" : "R+A - ドライブオプション\n",
+        "R+L - スクリーンショット\n",
+        "R+←→ - 前／次への切り替え\n",
+        (clipboard->n_entries) ? "SELECT - クリップボードを削除\n" : "SELECT - クリップボードを復元\n", // only if clipboard is full
+        "START - 再起動 / [+R] 電源を切る\nHOMEボタン ホームメニュー"); // generic end part
     DrawStringF(MAIN_SCREEN, instr_x, SCREEN_HEIGHT - 4 - GetDrawStringHeight(instr), COLOR_STD_FONT, COLOR_STD_BG, instr);
 }
 
@@ -420,9 +420,9 @@ void DrawDirContents(DirStruct* contents, u32 cursor, u32* scroll) {
 
 u32 SdFormatMenu(const char* slabel) {
     static const u32 cluster_size_table[5] = { 0x0, 0x0, 0x4000, 0x8000, 0x10000 };
-    static const char* option_emunand_size[7] = { "No EmuNAND", "RedNAND size (min)", "GW EmuNAND size (full)",
-        "MultiNAND size (2x)", "MultiNAND size (3x)", "MultiNAND size (4x)", "User input..." };
-    static const char* option_cluster_size[4] = { "Auto", "16KB Clusters", "32KB Clusters", "64KB Clusters" };
+    static const char* option_emunand_size[7] = { "EmuNANDを作らない", "RedNAND 容量 (最小)", "GW EmuNAND 容量 (最大)",
+        "マルチNAND 容量 (2x)", "マルチNAND 容量 (3x)", "マルチNAND 容量 (4x)", "ユーザー入力..." };
+    static const char* option_cluster_size[4] = { "自動", "16KB クラスター", "32KB クラスター", "64KB クラスター" };
     u32 sysnand_min_size_sectors = GetNandMinSizeSectors(NAND_SYSNAND);
     u64 sysnand_min_size_mb = ((sysnand_min_size_sectors * 0x200) + 0xFFFFF) / 0x100000;
     u64 sysnand_multi_size_mb = (align(sysnand_min_size_sectors + 1, 0x2000) * 0x200) / 0x100000;
@@ -436,32 +436,32 @@ u32 SdFormatMenu(const char* slabel) {
     // check actual SD card size
     sdcard_size_mb = GetSDCardSize() / 0x100000;
     if (!sdcard_size_mb) {
-        ShowPrompt(false, "Error: SD card not detected.");
+        ShowPrompt(false, "エラー: SDカードが検出されません。");
         return 1;
     }
 
-    user_select = ShowSelectPrompt(7, option_emunand_size, "Format SD card (%lluMB)?\nChoose EmuNAND size:", sdcard_size_mb);
+    user_select = ShowSelectPrompt(7, option_emunand_size, "SDカードをフォーマット(%lluMB)?\nEmuNAND容量選択:", sdcard_size_mb);
     if (user_select && (user_select < 4)) {
         emunand_size_mb = (user_select == 2) ? sysnand_min_size_mb : (user_select == 3) ? sysnand_size_mb : 0;
     } else if ((user_select >= 4) && (user_select <= 6)) {
         u32 n = (user_select - 2);
         emunand_size_mb = n * sysnand_multi_size_mb;
     } else if (user_select == 7) do {
-        emunand_size_mb = ShowNumberPrompt(sysnand_min_size_mb, "SD card size is %lluMB.\nEnter EmuNAND size (MB) below:", sdcard_size_mb);
+        emunand_size_mb = ShowNumberPrompt(sysnand_min_size_mb, "SDカードの容量%lluMB.\nEmuNAND容量入力 (MB) :", sdcard_size_mb);
         if (emunand_size_mb == (u64) -1) break;
     } while (emunand_size_mb > sdcard_size_mb);
     if (emunand_size_mb == (u64) -1) return 1;
 
-    user_select = ShowSelectPrompt(4, option_cluster_size, "Format SD card (%lluMB)?\nChoose cluster size:", sdcard_size_mb);
+    user_select = ShowSelectPrompt(4, option_cluster_size, "SDカードをフォーマットしますか (%lluMB)?\nCクラスター容量選択:", sdcard_size_mb);
     if (!user_select) return 1;
     else cluster_size = cluster_size_table[user_select];
 
     snprintf(label, DRV_LABEL_LEN + 4, "0:%s", (slabel && *slabel) ? slabel : "GM9SD");
-    if (!ShowKeyboardOrPrompt(label + 2, 11 + 1, "Format SD card (%lluMB)?\nEnter label:", sdcard_size_mb))
+    if (!ShowKeyboardOrPrompt(label + 2, 11 + 1, "SDカードをフォーマットしますか(%lluMB)?\nラベル入力:", sdcard_size_mb))
         return 1;
 
     if (!FormatSDCard(emunand_size_mb, cluster_size, label)) {
-        ShowPrompt(false, "Format SD: failed!");
+        ShowPrompt(false, "SDカードのフォーマット失敗!");
         return 1;
     }
 
@@ -469,17 +469,17 @@ u32 SdFormatMenu(const char* slabel) {
         u32 emunand_offset = 1;
         u32 n_emunands = 1;
         if (emunand_size_mb >= 2 * sysnand_size_mb) {
-            static const char* option_emunand_type[4] = { "RedNAND type (multi)", "RedNAND type (single)", "GW EmuNAND type", "Don't set up" };
-            user_select = ShowSelectPrompt(4, option_emunand_type, "Choose EmuNAND type to set up:");
+            static const char* option_emunand_type[4] = { "RedNANDタイプ (マルチ)", "RedNANDタイプ　(単体)", "GW EmuNANDタイプ", "設定しないでください" };
+            user_select = ShowSelectPrompt(4, option_emunand_type, "セットアップするEmuNANDの種類を選択:");
             if (user_select > 3) return 0;
             emunand_offset = (user_select == 3) ? 0 : 1;
             if (user_select == 1) n_emunands = 4;
         } else if (emunand_size_mb >= sysnand_size_mb) {
-            static const char* option_emunand_type[3] = { "RedNAND type", "GW EmuNAND type", "Don't set up" };
-            user_select = ShowSelectPrompt(3, option_emunand_type, "Choose EmuNAND type to set up:");
+            static const char* option_emunand_type[3] = { "RedNANDタイプ", "GW EmuNANDタイプ", "設定しないでください" };
+            user_select = ShowSelectPrompt(3, option_emunand_type, "セットアップするEmuNANDの種類を選択:");
             if (user_select > 2) return 0;
             emunand_offset = (user_select == 2) ? 0 : 1; // 0 -> GW EmuNAND
-        } else user_select = ShowPrompt(true, "Clone SysNAND to RedNAND?") ? 1 : 0;
+        } else user_select = ShowPrompt(true, "SysNANDをRedNANDにクローンしますか") ? 1 : 0;
         if (!user_select) return 0;
 
         u8 ncsd[0x200];
@@ -491,7 +491,7 @@ u32 SdFormatMenu(const char* slabel) {
             if ((ReadNandSectors(ncsd, 0, 1, 0xFF, NAND_SYSNAND) != 0) ||
                 (WriteNandSectors(ncsd, 0, 1, 0xFF, NAND_EMUNAND) != 0) ||
                 (!PathCopy("E:", "S:/nand_minsize.bin", &flags))) {
-                ShowPrompt(false, "Cloning SysNAND to EmuNAND: failed!");
+                ShowPrompt(false, "SysNANDからEmuNANDへのクローニングに失敗しました!");
                 break;
             }
         }
@@ -524,7 +524,7 @@ u32 FileGraphicsViewer(const char* path) {
     if ((ret == 0) && w && h && (w <= SCREEN_WIDTH(ALT_SCREEN)) && (h <= SCREEN_HEIGHT)) {
         ClearScreenF(true, true, COLOR_STD_BG);
         DrawBitmap(ALT_SCREEN, -1, -1, w, h, bitmap);
-        ShowString("Press <A> to continue");
+        ShowString("<A>ボタンを押して続ける");
         while(!(InputWait(0) & (BUTTON_A | BUTTON_B)));
         ClearScreenF(true, true, COLOR_STD_BG);
     } else ret = 1;
@@ -571,7 +571,7 @@ u32 FileHexViewer(const char* path) {
     }
 
     static bool show_instr = true;
-    static const char* instr = "Hexeditor Controls:\n \n↑↓→←(+R) - Scroll\nR+Y - Switch view\nX - Search / goto...\nA - Enter edit mode\nA+↑↓→← - Edit value\nB - Exit\n";
+    static const char* instr = "Hexeditorコントロール:\n \n↑↓→←(+R) - スクロール\nR+Y - ビュー切り替え\nX - 検索 / へ...\nA - 編集モードに入る\nA+↑↓→← - 編集値\nB - 退出\n";
     if (show_instr) { // show one time instructions
         ShowPrompt(false, instr);
         show_instr = false;
@@ -744,37 +744,37 @@ u32 FileHexViewer(const char* path) {
             else if (found_size && (pad_state & BUTTON_R1) && (pad_state & BUTTON_X)) {
                 found_offset = FileFindData(path, found_data, found_size, found_offset + 1);
                 if (found_offset == (u32) -1) {
-                    ShowPrompt(false, "Not found!");
+                    ShowPrompt(false, "見つかりませんでした!");
                     found_size = 0;
                 } else offset = found_offset;
                 if (MAIN_SCREEN == TOP_SCREEN) ClearScreen(TOP_SCREEN, COLOR_STD_BG);
                 else if (dual_screen) ClearScreen(BOT_SCREEN, COLOR_STD_BG);
                 else memcpy(BOT_SCREEN, bottom_cpy, SCREEN_SIZE_BOT);
             } else if (pad_state & BUTTON_X) {
-                static const char* optionstr[3] = { "Go to offset", "Search for string", "Search for data" };
-                u32 user_select = ShowSelectPrompt(3, optionstr, "Current offset: %08X\nSelect action:",
+                static const char* optionstr[3] = { "オフセットへ", "文字列を検索する", "データ検索" };
+                u32 user_select = ShowSelectPrompt(3, optionstr, "現在のオフセッ: %08X\nアクションを選択:",
                     (unsigned int) offset);
                 if (user_select == 1) { // -> goto offset
-                    u64 new_offset = ShowHexPrompt(offset, 8, "Current offset: %08X\nEnter new offset below.",
+                    u64 new_offset = ShowHexPrompt(offset, 8, "現在のオフセット: %08X\n新しいオフセットを以下に入力します。.",
                         (unsigned int) offset);
                     if (new_offset != (u64) -1) offset = new_offset;
                 } else if (user_select == 2) {
                     if (!found_size) *found_data = 0;
-                    if (ShowKeyboardOrPrompt((char*) found_data, 64 + 1, "Enter search string below.\n(R+X to repeat search)")) {
+                    if (ShowKeyboardOrPrompt((char*) found_data, 64 + 1, "検索文字列を入力してください。\n(R+X を押すすると、検索を繰り返すことができます。)")) {
                         found_size = strnlen((char*) found_data, 64);
                         found_offset = FileFindData(path, found_data, found_size, offset);
                         if (found_offset == (u32) -1) {
-                            ShowPrompt(false, "Not found!");
+                            ShowPrompt(false, "見つかりませんでした!");
                             found_size = 0;
                         } else offset = found_offset;
                     }
                 } else if (user_select == 3) {
                     u32 size = found_size;
-                    if (ShowDataPrompt(found_data, &size, "Enter search data below.\n(R+X to repeat search)")) {
+                    if (ShowDataPrompt(found_data, &size, "検索データを入力してください。\n(R+X を押すすると、検索を繰り返すことができます。)")) {
                         found_size = size;
                         found_offset = FileFindData(path, found_data, size, offset);
                         if (found_offset == (u32) -1) {
-                            ShowPrompt(false, "Not found!");
+                            ShowPrompt(false, "見つかりませんでした!");
                             found_size = 0;
                         } else offset = found_offset;
                     }
@@ -799,9 +799,9 @@ u32 FileHexViewer(const char* path) {
                 // check for user edits
                 u32 diffs = 0;
                 for (u32 i = 0; i < edit_bsize; i++) if (buffer[i] != buffer_cpy[i]) diffs++;
-                if (diffs && ShowPrompt(true, "You made edits in %i place(s).\nWrite changes to file?", diffs))
+                if (diffs && ShowPrompt(true, "あなたが編集したのは %i です。\n変更をファイルに書き込みますか", diffs))
                     if (!FileSetData(path, buffer, min(edit_bsize, (fsize - edit_start)), edit_start, false))
-                        ShowPrompt(false, "Failed writing to file!");
+                        ShowPrompt(false, "ファイルへの書き込みに失敗しました!");
                 data = buffer;
                 last_offset = (u32) -1; // force reload from file
             } else if (pad_state & BUTTON_A) {
@@ -851,7 +851,7 @@ u32 ShaCalculator(const char* path, bool sha1) {
     u8 hash[32];
     TruncateString(pathstr, path, 32, 8);
     if (!FileGetSha(path, hash, 0, 0, sha1)) {
-        ShowPrompt(false, "Calculating SHA-%s: failed!", sha1 ? "1" : "256");
+        ShowPrompt(false, "SHAを計算する-%s: 失敗!", sha1 ? "1" : "256");
         return 1;
     } else {
         static char pathstr_prev[32 + 1] = { 0 };
@@ -873,9 +873,9 @@ u32 ShaCalculator(const char* path, bool sha1) {
             getbe64(hash + 16), getbe64(hash + 24));
         if (ShowPrompt(write_sha, "%s\n%s%s%s%s%s%c \nWrite .SHA%s file?",
             pathstr, hash_str,
-            (have_sha) ? "\nSHA verification: " : "",
-            (have_sha) ? ((match_sha) ? "passed!" : "failed!") : "",
-            (match_prev) ? "\n \nIdentical with previous file:\n" : "",
+            (have_sha) ? "\nSHA検証: " : "",
+            (have_sha) ? ((match_sha) ? "合格!" : "失敗!") : "",
+            (match_prev) ? "\n \n前のファイルと同じです。:\n" : "",
             (match_prev) ? pathstr_prev : "",
             (write_sha) ? '\n' : '\0',
             (sha1) ? "1" : "") && write_sha) {
@@ -895,26 +895,26 @@ u32 CmacCalculator(const char* path) {
     if (IdentifyFileType(path) != GAME_CMD) {
         u8 cmac[16] __attribute__((aligned(4)));
         if (CalculateFileCmac(path, cmac) != 0) {
-            ShowPrompt(false, "Calculating CMAC: failed!");
+            ShowPrompt(false, "CMACの算出: 失敗!");
             return 1;
         } else {
             u8 cmac_file[16];
             bool identical = ((ReadFileCmac(path, cmac_file) == 0) && (memcmp(cmac, cmac_file, 16) == 0));
             if (ShowPrompt(!identical, "%s\n%016llX%016llX\n%s%s%s",
                 pathstr, getbe64(cmac + 0), getbe64(cmac + 8),
-                "CMAC verification: ", (identical) ? "passed!" : "failed!",
-                (!identical) ? "\n \nFix CMAC in file?" : "") &&
+                "CMAC検証: ", (identical) ? "合格" : "失敗!",
+                (!identical) ? "\n \nファイル内のCMACを修正しますか?" : "") &&
                 !identical && (WriteFileCmac(path, cmac, true) != 0)) {
-                ShowPrompt(false, "Fixing CMAC: failed!");
+                ShowPrompt(false, "CMACの修正: 失敗!");
             }
         }
     } else { // special handling for CMD files
         bool correct = (CheckCmdCmac(path) == 0);
         if (ShowPrompt(!correct, "%s\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n%s%s%s",
-            pathstr, "CMAC verification: ", (correct) ? "passed!" : "failed!",
-            (!correct) ? "\n \nFix CMAC in file?" : "") &&
+            pathstr, "CMAC検証: ", (correct) ? "合格!" : "失敗!",
+            (!correct) ? "\n \nCMACをファイルに修正しますか？" : "") &&
             !correct && (FixCmdCmac(path, true) != 0)) {
-            ShowPrompt(false, "Fixing CMAC: failed!");
+            ShowPrompt(false, "CMACの修正: 失敗!");
         }
     }
 
@@ -931,7 +931,7 @@ u32 StandardCopy(u32* cursor, u32* scroll) {
     }
 
     u32 flags = BUILD_PATH;
-    if ((n_marked > 1) && ShowPrompt(true, "Copy all %lu selected items?", n_marked)) {
+    if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての%luをコピーしますか?", n_marked)) {
         u32 n_success = 0;
         for (u32 i = 0; i < current_dir->n_entries; i++) {
             const char* path = current_dir->entry[i].path;
@@ -943,18 +943,18 @@ u32 StandardCopy(u32* cursor, u32* scroll) {
             else { // on failure: show error, break
                 char currstr[UTF_BUFFER_BYTESIZE(32)];
                 TruncateString(currstr, path, 32, 12);
-                ShowPrompt(false, "%s\nFailed copying item", currstr);
+                ShowPrompt(false, "%s\nアイテムのコピーに失敗しました", currstr);
                 break;
             }
             current_dir->entry[i].marked = false;
         }
-        if (n_success) ShowPrompt(false, "%lu items copied to %s", n_success, OUTPUT_PATH);
+        if (n_success) ShowPrompt(false, "%lu コピーされた項目 %s", n_success, OUTPUT_PATH);
     } else {
         char pathstr[UTF_BUFFER_BYTESIZE(32)];
         TruncateString(pathstr, curr_entry->path, 32, 8);
         if (!PathCopy(OUTPUT_PATH, curr_entry->path, &flags))
-            ShowPrompt(false, "%s\nFailed copying item", pathstr);
-        else ShowPrompt(false, "%s\nCopied to %s", pathstr, OUTPUT_PATH);
+            ShowPrompt(false, "%s\nアイテムのコピーに失敗しました", pathstr);
+        else ShowPrompt(false, "%s\nコピーされました %s", pathstr, OUTPUT_PATH);
     }
 
     return 0;
@@ -968,7 +968,7 @@ u32 CartRawDump(void) {
     u64 dsize = 0;
 
     if (!cdata ||(InitCartRead(cdata) != 0) || (GetCartName(cname, cdata) != 0)) {
-        ShowPrompt(false, "Cart init failed!");
+        ShowPrompt(false, "カートの起動に失敗しました!");
         free(cdata);
         return 1;
     }
@@ -976,7 +976,7 @@ u32 CartRawDump(void) {
     // input dump size
     dsize = cdata->cart_size;
     FormatBytes(bytestr, dsize);
-    dsize = ShowHexPrompt(dsize, 8, "Cart: %s\nDetected size: %s\n \nInput dump size below.", cname, bytestr);
+    dsize = ShowHexPrompt(dsize, 8, "カート: %s\n容量を検出しました。: %s\n \nダンプサイズを以下に入力します。", cname, bytestr);
     if (!dsize || (dsize == (u64) -1)) {
         free(cdata);
         return 1;
@@ -985,7 +985,7 @@ u32 CartRawDump(void) {
     // for NDS carts: ask for secure area encryption
     if (cdata->cart_type & CART_NTR)
         SetSecureAreaEncryption(
-            !ShowPrompt(true, "Cart: %s\nNDS cart detected\nDecrypt the secure area?", cname));
+            !ShowPrompt(true, "カート: %s\nNDSカートを検出\nセキュアエリアを復号化しますか?", cname));
 
     // destination path
     snprintf(dest, 256, "%s/%s_%08llX.%s",
@@ -1013,8 +1013,8 @@ u32 CartRawDump(void) {
         }
     }
 
-    if (ret) ShowPrompt(false, "%s\nFailed dumping cart", cname);
-    else ShowPrompt(false, "%s\nDumped to %s", cname, OUTPUT_PATH);
+    if (ret) ShowPrompt(false, "%s\nカートダンプに失敗", cname);
+    else ShowPrompt(false, "%s\nダンプ %s", cname, OUTPUT_PATH);
     
     free(buf);
     free(cdata);
@@ -1037,7 +1037,7 @@ u32 DirFileAttrMenu(const char* path, const char *name) {
         vrt = (fno.fattrib & AM_VRT);
         new_attrib = fno.fattrib;
         snprintf(datestr, 32, "%s: %04d-%02d-%02d %02d:%02d:%02d\n",
-            (fno.fattrib & AM_DIR) ? "created" : "modified",
+            (fno.fattrib & AM_DIR) ? "作成済み" : "編集された",
             1980 + ((fno.fdate >> 9) & 0x7F), (fno.fdate >> 5) & 0xF, fno.fdate & 0x1F,
             (fno.ftime >> 11) & 0x1F, (fno.ftime >> 5) & 0x3F, (fno.ftime & 0x1F) << 1);
     } else {
@@ -1054,7 +1054,7 @@ u32 DirFileAttrMenu(const char* path, const char *name) {
         u32 tfiles = 0;
 
         // this may take a while...
-        ShowString("Analyzing %s, please wait...", drv ? "drive" : "dir");
+        ShowString("%s　を解析しています。...", drv ? "ドライブ" : "ディレクトリ");
         if (!DirInfo(path, &tsize, &tdirs, &tfiles))
             return 1;
         FormatBytes(bytestr, tsize);
@@ -1064,32 +1064,32 @@ u32 DirFileAttrMenu(const char* path, const char *name) {
             FormatBytes(freestr, GetFreeSpace(path));
             FormatBytes(drvsstr, GetTotalSpace(path));
             FormatBytes(usedstr, GetTotalSpace(path) - GetFreeSpace(path));
-            snprintf(sizestr, 192, "%lu files & %lu subdirs\n%s total size\n \nspace free: %s\nspace used: %s\nspace total: %s",
+            snprintf(sizestr, 192, "%lu ファイル & %lu サブディレクトリ\n%s 合計サイズ\n \n空き容量: %s\n使用されています: %s\n全空き容量: %s",
                 tfiles, tdirs, bytestr, freestr, usedstr, drvsstr);
         } else { // dir specific
-            snprintf(sizestr, 192, "%lu files & %lu subdirs\n%s total size",
+            snprintf(sizestr, 192, "%lu ファイル & %lu サブディレクトリ\n%s 合計サイズ",
                 tfiles, tdirs, bytestr);
         }
     } else { // for files
         char bytestr[32];
         FormatBytes(bytestr, fno.fsize);
-        snprintf(sizestr, 64, "filesize: %s", bytestr);
+        snprintf(sizestr, 64, "容量: %s", bytestr);
     }
 
     while(true) {
         if (!drv) {
             snprintf(attrstr, 128,
                 " \n"
-                "[%c] %sread-only  [%c] %shidden\n"
-                "[%c] %ssystem     [%c] %sarchive\n"
-                "[%c] %svirtual\n"
+                "[%c] %スレッドオンリー  [%c] %s隠しファイル\n"
+                "[%c] %sシステム     [%c] %s圧縮ファイル\n"
+                "[%c] %s仮想\n"
                 "%s",
                 (new_attrib & AM_RDO) ? 'X' : ' ', vrt ? "" : "↑",
                 (new_attrib & AM_HID) ? 'X' : ' ', vrt ? "" : "↓",
                 (new_attrib & AM_SYS) ? 'X' : ' ', vrt ? "" : "→",
                 (new_attrib & AM_ARC) ? 'X' : ' ', vrt ? "" : "←",
                 vrt ? 'X' : ' ', vrt ? "" : "  ",
-                vrt ? "" : " \n(↑↓→← to change attributes)\n"
+                vrt ? "" : " \n(↑↓→← 属性を変更する)\n"
             );
         }
 
@@ -1100,7 +1100,7 @@ u32 DirFileAttrMenu(const char* path, const char *name) {
             "%s \n"     // attr (not for drives)
             "%s\n",     // options
             namestr, datestr, sizestr, attrstr,
-            (drv || vrt || (new_attrib == fno.fattrib)) ? "(<A> to continue)" : "(<A> to apply, <B> to cancel)"
+            (drv || vrt || (new_attrib == fno.fattrib)) ? "(<A>ボタンを押してで続ける)" : "(<A>適用する, <B>キャンセル)"
         );
 
         while(true) {
@@ -1111,7 +1111,7 @@ u32 DirFileAttrMenu(const char* path, const char *name) {
                     const u8 mask = (AM_RDO | AM_HID | AM_SYS | AM_ARC);
                     bool apply = (new_attrib != fno.fattrib) && (pad_state & BUTTON_A);
                     if (apply && !PathAttr(path, new_attrib & mask, mask)) {
-                        ShowPrompt(false, "%s\nFailed to set attributes!", namestr);
+                        ShowPrompt(false, "%s\n属性の設定に失敗しました", namestr);
                     }
                 }
                 ClearScreenF(true, false, COLOR_STD_BG);
@@ -1250,53 +1250,53 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         n_opt = 2;
     }
     if (special > 0) optionstr[special-1] =
-        (filetype & IMG_NAND  ) ? "NAND image options..." :
-        (filetype & IMG_FAT   ) ? (transferable) ? "CTRNAND options..." : "Mount as FAT image" :
-        (filetype & GAME_CIA  ) ? "CIA image options..."  :
-        (filetype & GAME_NCSD ) ? "NCSD image options..." :
-        (filetype & GAME_NCCH ) ? "NCCH image options..." :
-        (filetype & GAME_EXEFS) ? "Mount as EXEFS image"  :
-        (filetype & GAME_ROMFS) ? "Mount as ROMFS image"  :
-        (filetype & GAME_TMD  ) ? "TMD file options..."   :
-        (filetype & GAME_CDNTMD)? "TMD/CDN options..."    :
-        (filetype & GAME_TWLTMD)? "TMD/TWL options..."    :
-        (filetype & GAME_TIE  ) ? "Manage Title..."       :
-        (filetype & GAME_BOSS ) ? "BOSS file options..."  :
-        (filetype & GAME_NUSCDN)? "Decrypt NUS/CDN file"  :
-        (filetype & GAME_SMDH)  ? "Show SMDH title info"  :
-        (filetype & GAME_NDS)   ? "NDS image options..."  :
-        (filetype & GAME_GBA)   ? "GBA image options..."  :
-        (filetype & GAME_TICKET)? "Ticket options..."     :
-        (filetype & GAME_TAD)   ? "TAD image options..."  :
-        (filetype & GAME_3DSX)  ? "Show 3DSX title info"  :
-        (filetype & SYS_FIRM  ) ? "FIRM image options..." :
-        (filetype & SYS_AGBSAVE)? (agbimportable) ? "AGBSAVE options..." : "Dump GBA VC save" :
-        (filetype & SYS_TICKDB) ? "Ticket.db options..."  :
-        (filetype & SYS_DIFF)   ? "Mount as DIFF image"   :
-        (filetype & SYS_DISA)   ? "Mount as DISA image"   :
-        (filetype & BIN_CIFNSH) ? "Install cifinish.bin" :
-        (filetype & BIN_TIKDB)  ? "Titlekey options..."   :
-        (filetype & BIN_KEYDB)  ? "AESkeydb options..."   :
-        (filetype & BIN_LEGKEY) ? "Build " KEYDB_NAME     :
-        (filetype & BIN_NCCHNFO)? "NCCHinfo options..."   :
-        (filetype & TXT_SCRIPT) ? "Execute GM9 script"    :
-        (FTYPE_FONT(filetype))  ? "Font options..."       :
-        (filetype & GFX_PNG)    ? "View PNG file"         :
-        (filetype & HDR_NAND)   ? "Rebuild NCSD header"   :
-        (filetype & NOIMG_NAND) ? "Rebuild NCSD header" : "???";
-    optionstr[hexviewer-1] = "Show in Hexeditor";
-    optionstr[calcsha256-1] = "Calculate SHA-256";
-    optionstr[calcsha1-1] = "Calculate SHA-1";
-    optionstr[fileinfo-1] = "Show file info";
-    if (textviewer > 0) optionstr[textviewer-1] = "Show in Textviewer";
-    if (calccmac > 0) optionstr[calccmac-1] = "Calculate CMAC";
-    if (copystd > 0) optionstr[copystd-1] = "Copy to " OUTPUT_PATH;
-    if (inject > 0) optionstr[inject-1] = "Inject data @offset";
-    if (searchdrv > 0) optionstr[searchdrv-1] = "Open containing folder";
-    if (titleman > 0) optionstr[titleman-1] = "Open title folder";
+        (filetype & IMG_NAND  ) ? "NANDイメージオプション..." :
+        (filetype & IMG_FAT   ) ? (transferable) ? "CTRNANDオプション..." : "FATイメージとして接続する" :
+        (filetype & GAME_CIA  ) ? "CIAイメージオプション..."  :
+        (filetype & GAME_NCSD ) ? "NCSDイメージオプション..." :
+        (filetype & GAME_NCCH ) ? "NCCHイメージオプション..." :
+        (filetype & GAME_EXEFS) ? "EXEFSイメージを接続"  :
+        (filetype & GAME_ROMFS) ? "ROMFSイメージを接続"  :
+        (filetype & GAME_TMD  ) ? "TMD ファイル　オプション..."   :
+        (filetype & GAME_CDNTMD)? "TMD/CDN オプション..."    :
+        (filetype & GAME_TWLTMD)? "TMD/TWL オプション..."    :
+        (filetype & GAME_TIE  ) ? "タイトル管理..."       :
+        (filetype & GAME_BOSS ) ? "BOSSファイルオプション..."  :
+        (filetype & GAME_NUSCDN)? "NUS/CDNファイルを複合化"  :
+        (filetype & GAME_SMDH)  ? "SMDHのタイトル情報を表示"  :
+        (filetype & GAME_NDS)   ? "NDS イメージオプション..."  :
+        (filetype & GAME_GBA)   ? "GBA イメージオプション..."  :
+        (filetype & GAME_TICKET)? "Ticketオプション..."     :
+        (filetype & GAME_TAD)   ? "TAD イメージオプション..."  :
+        (filetype & GAME_3DSX)  ? "3DSXのタイトル情報を表示する"  :
+        (filetype & SYS_FIRM  ) ? "FIRM イメージオプション..." :
+        (filetype & SYS_AGBSAVE)? (agbimportable) ? "AGBSAVE オプション..." : "GBAのVCセーブをダンプ" :
+        (filetype & SYS_TICKDB) ? "Ticket.db オプション..."  :
+        (filetype & SYS_DIFF)   ? "DIFFイメージを接続"   :
+        (filetype & SYS_DISA)   ? "DISAイメージを接続"   :
+        (filetype & BIN_CIFNSH) ? "cifinish.binのインストール" :
+        (filetype & BIN_TIKDB)  ? "タイトルキー オプション..."   :
+        (filetype & BIN_KEYDB)  ? "AESkeydb オプション..."   :
+        (filetype & BIN_LEGKEY) ? "構築 " KEYDB_NAME     :
+        (filetype & BIN_NCCHNFO)? "NCCHinfo オプション..."   :
+        (filetype & TXT_SCRIPT) ? "GM9スクリプトの実行"    :
+        (FTYPE_FONT(filetype))  ? "フォント オプション..."       :
+        (filetype & GFX_PNG)    ? "PNGファイルを見る"         :
+        (filetype & HDR_NAND)   ? "NCSDヘッダーの再構築"   :
+        (filetype & NOIMG_NAND) ? "NCSDヘッダーの再構築" : "???";
+    optionstr[hexviewer-1] = "Hexeditorで表示する";
+    optionstr[calcsha256-1] = "SHA-256を計算する";
+    optionstr[calcsha1-1] = "SHA-1を計算する";
+    optionstr[fileinfo-1] = "ファイル情報を表示する";
+    if (textviewer > 0) optionstr[textviewer-1] = "Textviewerで表示する";
+    if (calccmac > 0) optionstr[calccmac-1] = "CMACを計算する";
+    if (copystd > 0) optionstr[copystd-1] = "コピー先 " OUTPUT_PATH;
+    if (inject > 0) optionstr[inject-1] = "インジェクトデータ @offset";
+    if (searchdrv > 0) optionstr[searchdrv-1] = "保存しているフォルダを開く";
+    if (titleman > 0) optionstr[titleman-1] = "タイトルフォルダを開く";
 
     int user_select = ShowSelectPrompt(n_opt, optionstr, (n_marked > 1) ?
-        "%s%0.0s\n(%lu files selected)" : "%s%s", pathstr, tidstr, n_marked);
+        "%s%0.0s\n(%lu 選択されたファイル)" : "%s%s", pathstr, tidstr, n_marked);
     if (user_select == hexviewer) { // -> show in hex viewer
         FileHexViewer(file_path);
         GetDirContents(current_dir, current_path);
@@ -1317,10 +1317,10 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         return 0;
     }
     else if (user_select == calccmac) { // -> calculate CMAC
-        optionstr[0] = "Check current CMAC only";
-        optionstr[1] = "Verify CMAC for all";
-        optionstr[2] = "Fix CMAC for all";
-        user_select = (n_marked > 1) ? ShowSelectPrompt(3, optionstr, "%s\n(%lu files selected)", pathstr, n_marked) : 1;
+        optionstr[0] = "CMACのみカレントチェック";
+        optionstr[1] = "すべてのCMACを検証する";
+        optionstr[2] = "すべてのCMACを修正";
+        user_select = (n_marked > 1) ? ShowSelectPrompt(3, optionstr, "%s\n(%lu 選択されたファイル)", pathstr, n_marked) : 1;
         if (user_select == 1) {
             CmacCalculator(file_path);
             return 0;
@@ -1347,14 +1347,14 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 current_dir->entry[i].marked = false;
             }
             if (n_fixed) {
-                if (n_nocmac) ShowPrompt(false, "%lu/%lu/%lu files ok/fixed/total\n%lu/%lu have no CMAC",
+                if (n_nocmac) ShowPrompt(false, "%lu/%lu/%lu ファイルok/修正済/合計\n%lu/%lu はCMACがありません",
                     n_success, n_fixed, n_marked, n_nocmac, n_marked);
                  else ShowPrompt(false, "%lu/%lu files verified ok\n%lu/%lu files fixed",
                     n_success, n_marked, n_fixed, n_marked);
             } else {
-                if (n_nocmac) ShowPrompt(false, "%lu/%lu files verified ok\n%lu/%lu have no CMAC",
+                if (n_nocmac) ShowPrompt(false, "%lu/%lu 確認されました\n%lu/%lu はCMACがありません",
                     n_success, n_marked, n_nocmac, n_marked);
-                else ShowPrompt(false, "%lu/%lu files verified ok", n_success, n_marked);
+                else ShowPrompt(false, "%lu/%lu 確認されました", n_success, n_marked);
             }
             return 0;
         }
@@ -1371,10 +1371,10 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
     else if (user_select == inject) { // -> inject data from clipboard
         char origstr[UTF_BUFFER_BYTESIZE(18)];
         TruncateString(origstr, clipboard->entry[0].name, 18, 10);
-        u64 offset = ShowHexPrompt(0, 8, "Inject data from %s?\nSpecify offset below.", origstr);
+        u64 offset = ShowHexPrompt(0, 8, "%s からデータを導入しますか?\nオフセットは下記でご指定ください。", origstr);
         if (offset != (u64) -1) {
             if (!FileInjectFile(file_path, clipboard->entry[0].path, (u32) offset, 0, 0, NULL))
-                ShowPrompt(false, "Failed injecting %s", origstr);
+                ShowPrompt(false, "導入の失敗 %s", origstr);
             clipboard->n_entries = 0;
         }
         return 0;
@@ -1446,46 +1446,46 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
     int agbexport = (agbexportable) ? ++n_opt : -1;
     int agbimport = (agbimportable) ? ++n_opt : -1;
     int setup = (setable) ? ++n_opt : -1;
-    if (mount > 0) optionstr[mount-1] = (filetype & GAME_TMD) ? "Mount CXI/NDS to drive" : "Mount image to drive";
-    if (restore > 0) optionstr[restore-1] = "Restore SysNAND (safe)";
-    if (ebackup > 0) optionstr[ebackup-1] = "Update embedded backup";
-    if (ncsdfix > 0) optionstr[ncsdfix-1] = "Rebuild NCSD header";
-    if (show_info > 0) optionstr[show_info-1] = "Show title info";
-    if (decrypt > 0) optionstr[decrypt-1] = (cryptable_inplace) ? "Decrypt file (...)" : "Decrypt file (" OUTPUT_PATH ")";
-    if (encrypt > 0) optionstr[encrypt-1] = (cryptable_inplace) ? "Encrypt file (...)" : "Encrypt file (" OUTPUT_PATH ")";
-    if (cia_build > 0) optionstr[cia_build-1] = (cia_build_legit < 0) ? "Build CIA from file" : "Build CIA (standard)";
-    if (cia_build_legit > 0) optionstr[cia_build_legit-1] = "Build CIA (legit)";
-    if (cxi_dump > 0) optionstr[cxi_dump-1] = "Dump CXI/NDS file";
-    if (cia_install > 0) optionstr[cia_install-1] = "Install game image";
-    if (tik_install > 0) optionstr[tik_install-1] = "Install ticket";
-    if (tik_dump > 0) optionstr[tik_dump-1] = "Dump ticket file";
-    if (cif_install > 0) optionstr[cif_install-1] = "Install cifinish.bin";
-    if (uninstall > 0) optionstr[uninstall-1] = "Uninstall title";
-    if (tik_build_enc > 0) optionstr[tik_build_enc-1] = "Build " TIKDB_NAME_ENC;
-    if (tik_build_dec > 0) optionstr[tik_build_dec-1] = "Build " TIKDB_NAME_DEC;
-    if (key_build > 0) optionstr[key_build-1] = "Build " KEYDB_NAME;
-    if (verify > 0) optionstr[verify-1] = "Verify file";
-    if (ctrtransfer > 0) optionstr[ctrtransfer-1] = "Transfer image to CTRNAND";
-    if (hsinject > 0) optionstr[hsinject-1] = "Inject to H&S";
-    if (trim > 0) optionstr[trim-1] = "Trim file";
-    if (rename > 0) optionstr[rename-1] = "Rename file";
-    if (xorpad > 0) optionstr[xorpad-1] = "Build XORpads (SD output)";
-    if (xorpad_inplace > 0) optionstr[xorpad_inplace-1] = "Build XORpads (inplace)";
-    if (extrcode > 0) optionstr[extrcode-1] = "Extract " EXEFS_CODE_NAME;
-    if (keyinit > 0) optionstr[keyinit-1] = "Init " KEYDB_NAME;
-    if (keyinstall > 0) optionstr[keyinstall-1] = "Install " KEYDB_NAME;
-    if (install > 0) optionstr[install-1] = "Install FIRM";
-    if (boot > 0) optionstr[boot-1] = "Boot FIRM";
-    if (script > 0) optionstr[script-1] = "Execute GM9 script";
-    if (view > 0) optionstr[view-1] = "View PNG file";
-    if (font > 0) optionstr[font-1] = "Set as active font";
-    if (agbexport > 0) optionstr[agbexport-1] = "Dump GBA VC save";
-    if (agbimport > 0) optionstr[agbimport-1] = "Inject GBA VC save";
-    if (setup > 0) optionstr[setup-1] = "Set as default";
+    if (mount > 0) optionstr[mount-1] = (filetype & GAME_TMD) ? "CXI/NDSをドライブに搭載" : "ドライブにイメージを接続する";
+    if (restore > 0) optionstr[restore-1] = "SysNANDのリストア (safe)";
+    if (ebackup > 0) optionstr[ebackup-1] = "組み込みバックアップの更新";
+    if (ncsdfix > 0) optionstr[ncsdfix-1] = "NCSDヘッダーの再構築";
+    if (show_info > 0) optionstr[show_info-1] = "タイトル情報を表示する";
+    if (decrypt > 0) optionstr[decrypt-1] = (cryptable_inplace) ? "復号化ファイル (...)" : "復号化ファイル (" OUTPUT_PATH ")";
+    if (encrypt > 0) optionstr[encrypt-1] = (cryptable_inplace) ? "暗号化ファイル (...)" : "暗号化ファイル (" OUTPUT_PATH ")";
+    if (cia_build > 0) optionstr[cia_build-1] = (cia_build_legit < 0) ? "ファイルからCIAを作成する" : "CIA作成 (標準)";
+    if (cia_build_legit > 0) optionstr[cia_build_legit-1] = "CIA作成（正規品）";
+    if (cxi_dump > 0) optionstr[cxi_dump-1] = "CXI/NDSファイルのダンプ";
+    if (cia_install > 0) optionstr[cia_install-1] = "ゲームイメージのインストール";
+    if (tik_install > 0) optionstr[tik_install-1] = "チケットをインストール";
+    if (tik_dump > 0) optionstr[tik_dump-1] = "チケットファイルをダンプ";
+    if (cif_install > 0) optionstr[cif_install-1] = "cifinish.binのインストール";
+    if (uninstall > 0) optionstr[uninstall-1] = "タイトルをアンインストール";
+    if (tik_build_enc > 0) optionstr[tik_build_enc-1] = "構築 " TIKDB_NAME_ENC;
+    if (tik_build_dec > 0) optionstr[tik_build_dec-1] = "構築 " TIKDB_NAME_DEC;
+    if (key_build > 0) optionstr[key_build-1] = "構築 " KEYDB_NAME;
+    if (verify > 0) optionstr[verify-1] = "ファイルを確認";
+    if (ctrtransfer > 0) optionstr[ctrtransfer-1] = "CTRNANDへのイメージを転送";
+    if (hsinject > 0) optionstr[hsinject-1] = "H&Sに注入";
+    if (trim > 0) optionstr[trim-1] = "タイトルをトリム";
+    if (rename > 0) optionstr[rename-1] = "ファイル名変更";
+    if (xorpad > 0) optionstr[xorpad-1] = "XORpadを作る (SD output)";
+    if (xorpad_inplace > 0) optionstr[xorpad_inplace-1] = "XORpadを作る (置き換える)";
+    if (extrcode > 0) optionstr[extrcode-1] = "抽出 " EXEFS_CODE_NAME;
+    if (keyinit > 0) optionstr[keyinit-1] = "イにっと " KEYDB_NAME;
+    if (keyinstall > 0) optionstr[keyinstall-1] = "インストール " KEYDB_NAME;
+    if (install > 0) optionstr[install-1] = "FIRMをインストール";
+    if (boot > 0) optionstr[boot-1] = "FIRMを起動";
+    if (script > 0) optionstr[script-1] = "GM9スクリプトの実行";
+    if (view > 0) optionstr[view-1] = "PNGファイルを見る";
+    if (font > 0) optionstr[font-1] = "アクティブフォントに設定する";
+    if (agbexport > 0) optionstr[agbexport-1] = "GBAのVCセーブをダンプ";
+    if (agbimport > 0) optionstr[agbimport-1] = "GBA VCセーブのインジェクション";
+    if (setup > 0) optionstr[setup-1] = "デフォルトで設定";
 
     // auto select when there is only one option
     user_select = (n_opt <= 1) ? n_opt : (int) ShowSelectPrompt(n_opt, optionstr, (n_marked > 1) ?
-        "%s%0.0s\n(%lu files selected)" : "%s%s", pathstr, tidstr, n_marked);
+        "%s%0.0s\n(%lu 選択されたファイル)" : "%s%s", pathstr, tidstr, n_marked);
     if (user_select == mount) { // -> mount file as image
         const char* mnt_drv_paths[] = { "7:", "G:", "K:", "T:", "I:", "D:" }; // maybe move that to fsdrive.h
         if (clipboard->n_entries && (DriveType(clipboard->entry[0].path) & DRV_IMAGE))
@@ -1500,10 +1500,10 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         }
 
         if (!drv_path) {
-            ShowPrompt(false, "Mounting image: failed");
+            ShowPrompt(false, "イメージを接続集: 失敗");
             InitImgFS(NULL);
         } else { // open in next pane?
-            if (ShowPrompt(true, "%s\nMounted as drive %s\nEnter path now?", pathstr, drv_path)) {
+            if (ShowPrompt(true, "%s\nドライブとして接続 %s\nパスを入力しますか？", pathstr, drv_path)) {
                 if (N_PANES) {
                     memcpy((*pane)->path, current_path, 256);  // store current pane state
                     (*pane)->cursor = *cursor;
@@ -1521,18 +1521,18 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
     }
     else if (user_select == decrypt) { // -> decrypt game file
         if (cryptable_inplace) {
-            optionstr[0] = "Decrypt to " OUTPUT_PATH;
-            optionstr[1] = "Decrypt inplace";
+            optionstr[0] = "復号化 " OUTPUT_PATH;
+            optionstr[1] = "インプレース復号化";
             user_select = (int) ShowSelectPrompt(2, optionstr, (n_marked > 1) ?
-                "%s%0.0s\n(%lu files selected)" : "%s%s", pathstr, tidstr, n_marked);
+                "%s%0.0s\n(%lu 選択されたファイル)" : "%s%s", pathstr, tidstr, n_marked);
         } else user_select = 1;
         bool inplace = (user_select == 2);
         if (!user_select) { // do nothing when no choice is made
-        } else if ((n_marked > 1) && ShowPrompt(true, "Try to decrypt all %lu selected files?", n_marked)) {
+        } else if ((n_marked > 1) && ShowPrompt(true, "選択したすべてのファイルを復号化しますか？ %lu ", n_marked)) {
             u32 n_success = 0;
             u32 n_unencrypted = 0;
             u32 n_other = 0;
-            ShowString("Trying to decrypt %lu files...", n_marked);
+            ShowString(" %lu ファイルの復号化を試みています。...", n_marked);
             for (u32 i = 0; i < current_dir->n_entries; i++) {
                 const char* path = current_dir->entry[i].path;
                 if (!current_dir->entry[i].marked)
@@ -1551,41 +1551,41 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 else { // on failure: show error, continue
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nDecryption failed\n \nContinue?", lpathstr)) continue;
+                    if (ShowPrompt(true, "%s\n復号化に失敗\n \n続けますか?", lpathstr)) continue;
                     else break;
                 }
                 current_dir->entry[i].marked = false;
             }
             if (n_other || n_unencrypted) {
-                ShowPrompt(false, "%lu/%lu files decrypted ok\n%lu/%lu not encrypted\n%lu/%lu not of same type",
+                ShowPrompt(false, "%lu/%lu 復号化されました\n%lu/%lu 非暗号化\n%lu/%lu 種類が異なる",
                     n_success, n_marked, n_unencrypted, n_marked, n_other, n_marked);
-            } else ShowPrompt(false, "%lu/%lu files decrypted ok", n_success, n_marked);
-            if (!inplace && n_success) ShowPrompt(false, "%lu files written to %s", n_success, OUTPUT_PATH);
+            } else ShowPrompt(false, "%lu/%lu 復号化されました", n_success, n_marked);
+            if (!inplace && n_success) ShowPrompt(false, "%lu に書き込まれたファイル。 %s", n_success, OUTPUT_PATH);
         } else {
             if (!(filetype & BIN_KEYDB) && (CheckEncryptedGameFile(file_path) != 0)) {
-                ShowPrompt(false, "%s\nFile is not encrypted", pathstr);
+                ShowPrompt(false, "%s\nファイルは暗号化されていません", pathstr);
             } else {
                 u32 ret = (filetype & BIN_KEYDB) ? CryptAesKeyDb(file_path, inplace, false) :
                     CryptGameFile(file_path, inplace, false);
-                if (inplace || (ret != 0)) ShowPrompt(false, "%s\nDecryption %s", pathstr, (ret == 0) ? "success" : "failed");
-                else ShowPrompt(false, "%s\nDecrypted to %s", pathstr, OUTPUT_PATH);
+                if (inplace || (ret != 0)) ShowPrompt(false, "%s\n復号化 %s", pathstr, (ret == 0) ? "成功" : "失敗");
+                else ShowPrompt(false, "%s\n暗号化 %s", pathstr, OUTPUT_PATH);
             }
         }
         return 0;
     }
     else if (user_select == encrypt) { // -> encrypt game file
         if (cryptable_inplace) {
-            optionstr[0] = "Encrypt to " OUTPUT_PATH;
-            optionstr[1] = "Encrypt inplace";
+            optionstr[0] = "暗号化 " OUTPUT_PATH;
+            optionstr[1] = "インプレースで暗号化";
             user_select = (int) ShowSelectPrompt(2, optionstr,  (n_marked > 1) ?
-                "%s%0.0s\n(%lu files selected)" : "%s%s", pathstr, tidstr, n_marked);
+                "%s%0.0s\n(%lu 選択されたファイル)" : "%s%s", pathstr, tidstr, n_marked);
         } else user_select = 1;
         bool inplace = (user_select == 2);
         if (!user_select) { // do nothing when no choice is made
-        } else if ((n_marked > 1) && ShowPrompt(true, "Try to encrypt all %lu selected files?", n_marked)) {
+        } else if ((n_marked > 1) && ShowPrompt(true, "選択したすべての %lu ファイルを暗号化しますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
-            ShowString("Trying to encrypt %lu files...", n_marked);
+            ShowString(" %lu ファイルの暗号化を試みています...", n_marked);
             for (u32 i = 0; i < current_dir->n_entries; i++) {
                 const char* path = current_dir->entry[i].path;
                 if (!current_dir->entry[i].marked)
@@ -1600,28 +1600,28 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 else { // on failure: show error, continue
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nEncryption failed\n \nContinue?", lpathstr)) continue;
+                    if (ShowPrompt(true, "%s\n暗号化に失敗\n \n続けますか?", lpathstr)) continue;
                     else break;
                 }
                 current_dir->entry[i].marked = false;
             }
             if (n_other) {
-                ShowPrompt(false, "%lu/%lu files encrypted ok\n%lu/%lu not of same type",
+                ShowPrompt(false, "%lu/%lu ファイルを暗号化しました\n%lu/%lu 種類が異なる",
                     n_success, n_marked, n_other, n_marked);
-            } else ShowPrompt(false, "%lu/%lu files encrypted ok", n_success, n_marked);
-            if (!inplace && n_success) ShowPrompt(false, "%lu files written to %s", n_success, OUTPUT_PATH);
+            } else ShowPrompt(false, "%lu ファイルを暗号化しました", n_success, n_marked);
+            if (!inplace && n_success) ShowPrompt(false, "%lu　ファイルが　%s　に書き込まれました。", n_success, OUTPUT_PATH);
         } else {
             u32 ret = (filetype & BIN_KEYDB) ? CryptAesKeyDb(file_path, inplace, true) :
                 CryptGameFile(file_path, inplace, true);
-            if (inplace || (ret != 0)) ShowPrompt(false, "%s\nEncryption %s", pathstr, (ret == 0) ? "success" : "failed");
-            else ShowPrompt(false, "%s\nEncrypted to %s", pathstr, OUTPUT_PATH);
+            if (inplace || (ret != 0)) ShowPrompt(false, "%s\n暗号化 %s", pathstr, (ret == 0) ? "成功" : "失敗");
+            else ShowPrompt(false, "%s\n暗号化 %s", pathstr, OUTPUT_PATH);
         }
         return 0;
     }
     else if ((user_select == cia_build) || (user_select == cia_build_legit) || (user_select == cxi_dump)) { // -> build CIA / dump CXI
         char* type = (user_select == cxi_dump) ? "CXI" : "CIA";
         bool force_legit = (user_select == cia_build_legit);
-        if ((n_marked > 1) && ShowPrompt(true, "Try to process all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての%luファイルを処理しようとしますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
             for (u32 i = 0; i < current_dir->n_entries; i++) {
@@ -1638,31 +1638,31 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 else { // on failure: show error, continue
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nBuild %s failed\n \nContinue?", lpathstr, type)) continue;
+                    if (ShowPrompt(true, "%s\n　%s 構築に失敗しました\n \n続けますか?", lpathstr, type)) continue;
                     else break;
                 }
                 current_dir->entry[i].marked = false;
             }
-            if (n_other) ShowPrompt(false, "%lu/%lu %ss built ok\n%lu/%lu not of same type",
+            if (n_other) ShowPrompt(false, "%lu/%lu %ss 構築しました\n%lu/%lu 種類が異なる",
                 n_success, n_marked, type, n_other, n_marked);
-            else ShowPrompt(false, "%lu/%lu %ss built ok", n_success, n_marked, type);
-            if (n_success) ShowPrompt(false, "%lu files written to %s", n_success, OUTPUT_PATH);
+            else ShowPrompt(false, "%lu/%lu %ss 構築しました", n_success, n_marked, type);
+            if (n_success) ShowPrompt(false, "%lu　ファイルが　%s　に書き込まれました。", n_success, OUTPUT_PATH);
             if (n_success && in_output_path) GetDirContents(current_dir, current_path);
             if (n_success != (n_marked - n_other)) {
-                ShowPrompt(false, "%lu file(s) failed conversion.\nVerification is recommended.",
+                ShowPrompt(false, "%luァイルは変換に失敗しました。\n検証を推奨します。",
                     n_marked - (n_success + n_other));
             }
         } else {
             if (((user_select != cxi_dump) && (BuildCiaFromGameFile(file_path, force_legit) == 0)) ||
                 ((user_select == cxi_dump) && (DumpCxiSrlFromGameFile(file_path) == 0))) {
-                ShowPrompt(false, "%s\n%s built to %s", pathstr, type, OUTPUT_PATH);
+                ShowPrompt(false, "%s\n%s 構築 %s", pathstr, type, OUTPUT_PATH);
                 if (in_output_path) GetDirContents(current_dir, current_path);
             } else {
-                ShowPrompt(false, "%s\n%s build failed", pathstr, type);
+                ShowPrompt(false, "%s\n%s 構築に失敗しました", pathstr, type);
                 if ((filetype & (GAME_NCCH|GAME_NCSD)) &&
-                    ShowPrompt(true, "%s\nfile failed conversion.\n \nVerify now?", pathstr)) {
-                    ShowPrompt(false, "%s\nVerification %s", pathstr,
-                        (VerifyGameFile(file_path) == 0) ? "success" : "failed");
+                    ShowPrompt(true, "%s\nファイルの変換に失敗しました。\n \n今すぐ検証しますか？", pathstr)) {
+                    ShowPrompt(false, "%s\n確認 %s", pathstr,
+                        (VerifyGameFile(file_path) == 0) ? "成功" : "失敗");
                 }
             }
         }
@@ -1675,17 +1675,17 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
             (user_select == tik_install) ? &InstallTicketFile : &InstallCifinishFile;
         bool to_emunand = false;
         if (CheckVirtualDrive("E:")) {
-            optionstr[0] = "Install to SysNAND";
-            optionstr[1] = "Install to EmuNAND";
+            optionstr[0] = "SysNANDにインストール";
+            optionstr[1] = "EmuNANDにインストール";
             user_select = (int) ShowSelectPrompt(2, optionstr,  (n_marked > 1) ?
-                "%s%0.0s\n(%lu files selected)" : "%s%s", pathstr, tidstr, n_marked);
+                "%s%0.0s\n(%lu 選択されたファイル)" : "%s%s", pathstr, tidstr, n_marked);
             if (!user_select) return 0;
             else to_emunand = (user_select == 2);
         }
-        if ((n_marked > 1) && ShowPrompt(true, "Try to install all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択したすべての %lu ファイルをインストールしますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
-            ShowString("Trying to install %lu files...", n_marked);
+            ShowString("%lu　ファイルのインストールを試みています。...", n_marked);
             for (u32 i = 0; i < current_dir->n_entries; i++) {
                 const char* path = current_dir->entry[i].path;
                 if (!current_dir->entry[i].marked)
@@ -1700,22 +1700,22 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 else { // on failure: show error, continue
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nInstall failed\n \nContinue?", lpathstr)) continue;
+                    if (ShowPrompt(true, "%s\nインストールに失敗しました\n \n続けますか?", lpathstr)) continue;
                     else break;
                 }
                 current_dir->entry[i].marked = false;
             }
             if (n_other) {
-                ShowPrompt(false, "%lu/%lu files installed ok\n%lu/%lu not of same type",
+                ShowPrompt(false, "%lu/%lu ファイルをインストールしました\n%lu/%lu 種類が異なる",
                     n_success, n_marked, n_other, n_marked);
-            } else ShowPrompt(false, "%lu/%lu files installed ok", n_success, n_marked);
+            } else ShowPrompt(false, "%lu/%lu ファイルをインストールしました", n_success, n_marked);
         } else {
             u32 ret = (*InstallFunction)(file_path, to_emunand);
-            ShowPrompt(false, "%s\nInstall %s", pathstr, (ret == 0) ? "success" : "failed");
+            ShowPrompt(false, "%s\nInstall %s", pathstr, (ret == 0) ? "成功" : "失敗");
             if ((ret != 0) && (filetype & (GAME_NCCH|GAME_NCSD)) &&
-                ShowPrompt(true, "%s\nfile failed install.\n \nVerify now?", pathstr)) {
-                ShowPrompt(false, "%s\nVerification %s", pathstr,
-                    (VerifyGameFile(file_path) == 0) ? "success" : "failed");
+                ShowPrompt(true, "%s\nファイルのインストールに失敗しました\n \n今すぐ検証しますか？", pathstr)) {
+                ShowPrompt(false, "%s\n検証 %s", pathstr,
+                    (VerifyGameFile(file_path) == 0) ? "成功" : "失敗");
             }
         }
         return 0;
@@ -1724,12 +1724,12 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         bool full_uninstall = false;
 
         // safety confirmation
-        optionstr[0] = "Keep ticket & savegame";
-        optionstr[1] = "Uninstall everything";
-        optionstr[2] = "Abort uninstall";
+        optionstr[0] = "チケットとセーブを保持する";
+        optionstr[1] = "すべてをアンインストール";
+        optionstr[2] = "アンインストールを中止する";
         user_select = (int) (n_marked > 1) ?
-            ShowSelectPrompt(3, optionstr, "Uninstall %lu selected titles?", n_marked) :
-            ShowSelectPrompt(3, optionstr, "%s\nUninstall selected title?", pathstr);
+            ShowSelectPrompt(3, optionstr, "選択されたタイトル %lu をアンインストールしますか？", n_marked) :
+            ShowSelectPrompt(3, optionstr, "%s\n選択したタイトルをアンインストールしますか？", pathstr);
         full_uninstall = (user_select == 2);
         if (!user_select || (user_select == 3))
             return 0;
@@ -1747,11 +1747,11 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 if (UninstallGameDataTie(path, true, full_uninstall, full_uninstall) == 0)
                     n_success++;
             }
-            ShowPrompt(false, "%lu/%lu titles uninstalled", n_success, n_marked);
+            ShowPrompt(false, "%lu/%lu アンインストールされたタイトル", n_success, n_marked);
         } else if (CheckWritePermissions(file_path)) {
-            ShowString("%s\nUninstalling, please wait...", pathstr);
+            ShowString("%s\nアンインストール中です、しばらくお待ちください...", pathstr);
             if (UninstallGameDataTie(file_path, true, full_uninstall, full_uninstall) != 0)
-                ShowPrompt(false, "%s\nUninstall failed!", pathstr);
+                ShowPrompt(false, "%s\nアンインストールに失敗しました!", pathstr);
             ClearScreenF(true, false, COLOR_STD_BG);
         }
 
@@ -1759,7 +1759,7 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         return 0;
     }
     else if (user_select == verify) { // -> verify game / nand file
-        if ((n_marked > 1) && ShowPrompt(true, "Try to verify all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての %lu ファイルを検証しますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
             u32 n_processed = 0;
@@ -1779,7 +1779,7 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 else { // on failure: show error, continue
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nVerification failed\n \nContinue?", lpathstr)) {
+                    if (ShowPrompt(true, "%s\n検証に失敗しました\n \n続けますか?", lpathstr)) {
                         if (!(filetype & (GAME_CIA|GAME_TMD|GAME_NCSD|GAME_NCCH)))
                             ShowProgress(0, n_marked, path); // restart progress bar
                         continue;
@@ -1787,21 +1787,21 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 }
                 current_dir->entry[i].marked = false;
             }
-            if (n_other) ShowPrompt(false, "%lu/%lu files verified ok\n%lu/%lu not of same type",
+            if (n_other) ShowPrompt(false, "%lu/%lu 確認されました\n%lu/%lu 種類が異なる",
                 n_success, n_marked, n_other, n_marked);
-            else ShowPrompt(false, "%lu/%lu files verified ok", n_success, n_marked);
+            else ShowPrompt(false, "%lu/%lu 確認されました", n_success, n_marked);
         } else {
-            ShowString("%s\nVerifying file, please wait...", pathstr);
+            ShowString("%s\nファイルを検証中です、しばらくお待ちください...", pathstr);
             if (filetype & IMG_NAND) {
-                ShowPrompt(false, "%s\nNAND validation %s", pathstr,
-                    (ValidateNandDump(file_path) == 0) ? "success" : "failed");
-            } else ShowPrompt(false, "%s\nVerification %s", pathstr,
-                (VerifyGameFile(file_path) == 0) ? "success" : "failed");
+                ShowPrompt(false, "%s\nNANDの検証 %s", pathstr,
+                    (ValidateNandDump(file_path) == 0) ? "成功" : "失敗");
+            } else ShowPrompt(false, "%s\n検証 %s", pathstr,
+                (VerifyGameFile(file_path) == 0) ? "成功" : "失敗");
         }
         return 0;
     }
     else if (user_select == tik_dump) { // dump ticket file
-        if ((n_marked > 1) && ShowPrompt(true, "Dump for all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての %lu ファイルをダンプしますか？", n_marked)) {
             u32 n_success = 0;
             u32 n_legit = 0;
             bool force_legit = true;
@@ -1817,20 +1817,20 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                     current_dir->entry[i].marked = false;
                 }
                 if (force_legit && (n_success != n_marked))
-                    if (!ShowPrompt(true, "%lu/%lu legit tickets dumped.\n \nAttempt to dump all tickets?",
+                    if (!ShowPrompt(true, "%lu/%lu 正規のチケットダンプ\n \n全チケットをダンプしますか?",
                         n_legit, n_marked)) break;
                 if (!force_legit) break;
                 force_legit = false;
             }
-            ShowPrompt(false, "%lu/%lu tickets dumped to %s",
+            ShowPrompt(false, "%lu/%lu ダンプされました %s",
                 n_success, n_marked, OUTPUT_PATH);
         } else {
             if (DumpTicketForGameFile(file_path, true) == 0) {
-                ShowPrompt(false, "%s\nTicket dumped to %s", pathstr, OUTPUT_PATH);
-            } else if (ShowPrompt(false, "%s\nLegit ticket not found.\n \nDump anyways?", pathstr)) {
+                ShowPrompt(false, "%s\nチケットをダンプ %s", pathstr, OUTPUT_PATH);
+            } else if (ShowPrompt(false, "%s\n正規のチケットが見つかりません。\n \nダンプしますか?", pathstr)) {
                 if (DumpTicketForGameFile(file_path, false) == 0)
-                    ShowPrompt(false, "%s\nTicket dumped to %s", pathstr, OUTPUT_PATH);
-                else ShowPrompt(false, "%s\nDump ticket failed!", pathstr);
+                    ShowPrompt(false, "%s\nチケットをダンプ %s", pathstr, OUTPUT_PATH);
+                else ShowPrompt(false, "%s\nチケットのダンプに失敗しました!", pathstr);
             }
         }
         return 0;
@@ -1839,7 +1839,7 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         bool dec = (user_select == tik_build_dec);
         const char* path_out = (dec) ? OUTPUT_PATH "/" TIKDB_NAME_DEC : OUTPUT_PATH "/" TIKDB_NAME_ENC;
         if (BuildTitleKeyInfo(NULL, dec, false) != 0) return 1; // init database
-        ShowString("Building %s...", (dec) ? TIKDB_NAME_DEC : TIKDB_NAME_ENC);
+        ShowString("構築中 %s...", (dec) ? TIKDB_NAME_DEC : TIKDB_NAME_ENC);
         if (n_marked > 1) {
             u32 n_success = 0;
             u32 n_other = 0;
@@ -1855,18 +1855,18 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 if (BuildTitleKeyInfo(path, dec, false) == 0) n_success++; // ignore failures for now
             }
             if (BuildTitleKeyInfo(NULL, dec, true) == 0) {
-                if (n_other) ShowPrompt(false, "%s\n%lu/%lu files processed\n%lu/%lu files ignored",
+                if (n_other) ShowPrompt(false, "%s\n%lu/%lu 処理済みファイル\n%lu/%lu ファイル無視",
                     path_out, n_success, n_marked, n_other, n_marked);
-                else ShowPrompt(false, "%s\n%lu/%lu files processed", path_out, n_success, n_marked);
-            } else ShowPrompt(false, "%s\nBuild database failed.", path_out);
-        } else ShowPrompt(false, "%s\nBuild database %s.", path_out,
-            (BuildTitleKeyInfo(file_path, dec, true) == 0) ? "success" : "failed");
+                else ShowPrompt(false, "%s\n%lu/%lu 処理済みファイル", path_out, n_success, n_marked);
+            } else ShowPrompt(false, "%s\nデータベースの構築に失敗しました。", path_out);
+        } else ShowPrompt(false, "%s\nデータベース構築 %s.", path_out,
+            (BuildTitleKeyInfo(file_path, dec, true) == 0) ? "成功" : "失敗");
         return 0;
     }
     else if (user_select == key_build) { // -> (Re)Build AES key database
         const char* path_out = OUTPUT_PATH "/" KEYDB_NAME;
         if (BuildKeyDb(NULL, false) != 0) return 1; // init database
-        ShowString("Building %s...", KEYDB_NAME);
+        ShowString("構築中 %s...", KEYDB_NAME);
         if (n_marked > 1) {
             u32 n_success = 0;
             u32 n_other = 0;
@@ -1882,16 +1882,16 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 if (BuildKeyDb(path, false) == 0) n_success++; // ignore failures for now
             }
             if (BuildKeyDb(NULL, true) == 0) {
-                if (n_other) ShowPrompt(false, "%s\n%lu/%lu files processed\n%lu/%lu files ignored",
+                if (n_other) ShowPrompt(false, "%s\n%lu/%lu 処理済みファイル\n%lu/%lu ファイル無視",
                     path_out, n_success, n_marked, n_other, n_marked);
-                else ShowPrompt(false, "%s\n%lu/%lu files processed", path_out, n_success, n_marked);
-            } else ShowPrompt(false, "%s\nBuild database failed.", path_out);
-        } else ShowPrompt(false, "%s\nBuild database %s.", path_out,
-            (BuildKeyDb(file_path, true) == 0) ? "success" : "failed");
+                else ShowPrompt(false, "%s\n%lu/%lu 処理済みファイル", path_out, n_success, n_marked);
+            } else ShowPrompt(false, "%s\nデータベースの構築に失敗しました。", path_out);
+        } else ShowPrompt(false, "%s\nデータベース構築 %s.", path_out,
+            (BuildKeyDb(file_path, true) == 0) ? "成功" : "失敗");
         return 0;
     }
     else if (user_select == trim) { // -> Game file trimmer
-        if ((n_marked > 1) && ShowPrompt(true, "Try to trim all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての %lu ファイルをトリミングしますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
             u32 n_processed = 0;
@@ -1914,7 +1914,7 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 } else { // on failure: show error, continue (should not happen)
                     char lpathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(lpathstr, path, 32, 8);
-                    if (ShowPrompt(true, "%s\nTrimming failed\n \nContinue?", lpathstr)) {
+                    if (ShowPrompt(true, "%s\nトリミングの失敗\n \n続けますか?", lpathstr)) {
                         ShowProgress(0, n_marked, path); // restart progress bar
                         continue;
                     } else break;
@@ -1922,9 +1922,9 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 current_dir->entry[i].marked = false;
             }
             FormatBytes(savingsstr, savings);
-            if (n_other) ShowPrompt(false, "%lu/%lu files trimmed ok\n%lu/%lu not of same type\n%s saved",
+            if (n_other) ShowPrompt(false, "%lu/%lu トリミングされました\n%lu/%lu 種類が異なる\n%s 保存されました!",
                 n_success, n_marked, n_other, n_marked, savingsstr);
-            else ShowPrompt(false, "%lu/%lu files trimmed ok\n%s saved", n_success, n_marked, savingsstr);
+            else ShowPrompt(false, "%lu/%lu トリミングされました\n%s 保存されました", n_success, n_marked, savingsstr);
             if (n_success) GetDirContents(current_dir, current_path);
         } else {
             u64 trimsize = GetGameFileTrimmedSize(file_path);
@@ -1937,14 +1937,14 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
             FormatBytes(dsizestr, currentsize - trimsize);
 
             if (!trimsize || trimsize > currentsize) {
-                ShowPrompt(false, "%s\nFile can't be trimmed.", pathstr);
+                ShowPrompt(false, "%s\nファイルのトリミングはできません。", pathstr);
             } else if (trimsize == currentsize) {
-                ShowPrompt(false, "%s\nFile is already trimmed.", pathstr);
-            } else if (ShowPrompt(true, "%s\nCurrent size: %s\nTrimmed size: %s\nDifference: %s\n \nTrim this file?",
+                ShowPrompt(false, "%s\nファイルはトリミング済です。", pathstr);
+            } else if (ShowPrompt(true, "%s\n現在の容量: %s\nトリムサイズ: %s\n違い: %s\n \nファイルをトリムしますか?",
                 pathstr, csizestr, tsizestr, dsizestr)) {
-                if (TrimGameFile(file_path) != 0) ShowPrompt(false, "%s\nTrimming failed.", pathstr);
+                if (TrimGameFile(file_path) != 0) ShowPrompt(false, "%s\nトリムに失敗しました", pathstr);
                 else {
-                    ShowPrompt(false, "%s\nTrimmed by %s.", pathstr, dsizestr);
+                    ShowPrompt(false, "%s\nトリムは %sで行っています", pathstr, dsizestr);
                     GetDirContents(current_dir, current_path);
                 }
             }
@@ -1952,7 +1952,7 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         return 0;
     }
     else if (user_select == rename) { // -> Game file renamer
-        if ((n_marked > 1) && ShowPrompt(true, "Try to rename all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択したすべての %lu ファイルの名前を変更しますか?", n_marked)) {
             u32 n_success = 0;
             ShowProgress(0, 0, "");
             for (u32 i = 0; i < current_dir->n_entries; i++) {
@@ -1963,9 +1963,9 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 n_success++;
                 current_dir->entry[i].marked = false;
             }
-            ShowPrompt(false, "%lu/%lu renamed ok", n_success, n_marked);
+            ShowPrompt(false, "%lu/%lu 名前が変更されました", n_success, n_marked);
         } else if (!GoodRenamer(&(current_dir->entry[*cursor]), true)) {
-            ShowPrompt(false, "%s\nCould not rename to good name", pathstr);
+            ShowPrompt(false, "%s\n良い名前に変更できませんでした", pathstr);
         }
         return 0;
     }
@@ -1977,22 +1977,22 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         char* destdrv[2] = { NULL };
         n_opt = 0;
         if (DriveType("1:")) {
-            optionstr[n_opt] = "SysNAND H&S inject";
+            optionstr[n_opt] = "SysNAND H&Sインジェクト";
             destdrv[n_opt++] = "1:";
         }
         if (DriveType("4:")) {
-            optionstr[n_opt] = "EmuNAND H&S inject";
+            optionstr[n_opt] = "EmuNAND H&Sインジェクト";
             destdrv[n_opt++] = "4:";
         }
         user_select = (n_opt > 1) ? (int) ShowSelectPrompt(n_opt, optionstr, "%s", pathstr) : n_opt;
         if (user_select) {
-            ShowPrompt(false, "%s\nH&S inject %s", pathstr,
-                (InjectHealthAndSafety(file_path, destdrv[user_select-1]) == 0) ? "success" : "failed");
+            ShowPrompt(false, "%s\nH&Sインジェクト %s", pathstr,
+                (InjectHealthAndSafety(file_path, destdrv[user_select-1]) == 0) ? "成功" : "失敗");
         }
         return 0;
     }
     else if (user_select == extrcode) { // -> Extract .code
-        if ((n_marked > 1) && ShowPrompt(true, "Try to extract all %lu selected files?", n_marked)) {
+        if ((n_marked > 1) && ShowPrompt(true, "選択されたすべての %lu ファイルを展開しますか?", n_marked)) {
             u32 n_success = 0;
             u32 n_other = 0;
             u32 n_processed = 0;
@@ -2018,15 +2018,15 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
                 }
                 current_dir->entry[i].marked = false;
             }
-            if (n_other) ShowPrompt(false, "%lu/%lu files extracted ok\n%lu/%lu not of same type",
+            if (n_other) ShowPrompt(false, "%lu/%lu 展開できました\n%lu/%lu 種類が異なる",
                 n_success, n_marked, n_other, n_marked);
-            else ShowPrompt(false, "%lu/%lu files extracted ok", n_success, n_marked);
+            else ShowPrompt(false, "%lu/%lu 展開できました", n_success, n_marked);
         } else {
             char extstr[8] = { 0 };
-            ShowString("%s\nExtracting .code, please wait...", pathstr);
+            ShowString("%s\n.codeを展開中です、しばらくお待ちください。...", pathstr);
             if (ExtractCodeFromCxiFile((filetype & GAME_TMD) ? cxi_path : file_path, NULL, extstr) == 0) {
-                ShowPrompt(false, "%s\n%s extracted to " OUTPUT_PATH, pathstr, extstr);
-            } else ShowPrompt(false, "%s\n.code extract failed", pathstr);
+                ShowPrompt(false, "%s\n%s 展開 " OUTPUT_PATH, pathstr, extstr);
+            } else ShowPrompt(false, "%s\n.codeの抽出に失敗しました", pathstr);
         }
         return 0;
     }
@@ -2034,30 +2034,30 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         char* destdrv[2] = { NULL };
         n_opt = 0;
         if (DriveType("1:")) {
-            optionstr[n_opt] = "Transfer to SysNAND";
+            optionstr[n_opt] = "SysNANDへの転送";
             destdrv[n_opt++] = "1:";
         }
         if (DriveType("4:")) {
-            optionstr[n_opt] = "Transfer to EmuNAND";
+            optionstr[n_opt] = "EmuNANDへの転送";
             destdrv[n_opt++] = "4:";
         }
         if (n_opt) {
             user_select = (n_opt > 1) ? (int) ShowSelectPrompt(n_opt, optionstr, "%s", pathstr) : 1;
             if (user_select) {
-                ShowPrompt(false, "%s\nCTRNAND transfer %s", pathstr,
-                    (TransferCtrNandImage(file_path, destdrv[user_select-1]) == 0) ? "success" : "failed");
+                ShowPrompt(false, "%s\nCTRNAND転送 %s", pathstr,
+                    (TransferCtrNandImage(file_path, destdrv[user_select-1]) == 0) ? "成功" : "失敗");
             }
-        } else ShowPrompt(false, "%s\nNo valid destination found", pathstr);
+        } else ShowPrompt(false, "%s\n有効な宛先が見つかりません", pathstr);
         return 0;
     }
     else if (user_select == restore) { // -> restore SysNAND (A9LH preserving)
-        ShowPrompt(false, "%s\nNAND restore %s", pathstr,
-            (SafeRestoreNandDump(file_path) == 0) ? "success" : "failed");
+        ShowPrompt(false, "%s\nNANDリストア %s", pathstr,
+            (SafeRestoreNandDump(file_path) == 0) ? "成功" : "失敗");
         return 0;
     }
     else if (user_select == ncsdfix) { // -> inject sighaxed NCSD
-        ShowPrompt(false, "%s\nRebuild NCSD %s", pathstr,
-            (FixNandHeader(file_path, !(filetype == HDR_NAND)) == 0) ? "success" : "failed");
+        ShowPrompt(false, "%s\nNCSDを再構築 %s", pathstr,
+            (FixNandHeader(file_path, !(filetype == HDR_NAND)) == 0) ? "成功" : "失敗");
         GetDirContents(current_dir, current_path);
         InitExtFS(); // this might have fixed something, so try this
         return 0;
@@ -2066,8 +2066,8 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         bool inplace = (user_select == xorpad_inplace);
         bool success = (BuildNcchInfoXorpads((inplace) ? current_path : OUTPUT_PATH, file_path) == 0);
         ShowPrompt(false, "%s\nNCCHinfo padgen %s%s", pathstr,
-            (success) ? "success" : "failed",
-            (!success || inplace) ? "" : "\nOutput dir: " OUTPUT_PATH);
+            (success) ? "成功" : "失敗",
+            (!success || inplace) ? "" : "\n出力先: " OUTPUT_PATH);
         GetDirContents(current_dir, current_path);
         for (; *cursor < current_dir->n_entries; (*cursor)++) {
             DirEntry* entry = &(current_dir->entry[*cursor]);
@@ -2080,35 +2080,35 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         return 0;
     }
     else if (user_select == ebackup) { // -> update embedded backup
-        ShowString("%s\nUpdating embedded backup...", pathstr);
+        ShowString("%s\n埋め込みバックアップの更新...", pathstr);
         bool required = (CheckEmbeddedBackup(file_path) != 0);
         bool success = (required && (EmbedEssentialBackup(file_path) == 0));
-        ShowPrompt(false, "%s\nBackup update: %s", pathstr, (!required) ? "not required" :
-            (success) ? "completed" : "failed!");
+        ShowPrompt(false, "%s\nバックアップ更新: %s", pathstr, (!required) ? "必要なし" :
+            (success) ? "完了" : "失敗!");
         GetDirContents(current_dir, current_path);
         return 0;
     }
     else if (user_select == keyinit) { // -> initialise keys from aeskeydb.bin
-        if (ShowPrompt(true, "Warning: Keys are not verified.\nContinue on your own risk?"))
-            ShowPrompt(false, "%s\nAESkeydb init %s", pathstr, (InitKeyDb(file_path) == 0) ? "success" : "failed");
+        if (ShowPrompt(true, "警告: キーは検証されていません。\n自己責任で続けますか"))
+            ShowPrompt(false, "%s\nAESkeydb 起動 %s", pathstr, (InitKeyDb(file_path) == 0) ? "成功" : "失敗");
         return 0;
     }
     else if (user_select == keyinstall) { // -> install keys from aeskeydb.bin
-        ShowPrompt(false, "%s\nAESkeydb install %s", pathstr, (SafeInstallKeyDb(file_path) == 0) ? "success" : "failed");
+        ShowPrompt(false, "%s\nAESkeydbインストール %s", pathstr, (SafeInstallKeyDb(file_path) == 0) ? "成功" : "失敗");
         return 0;
     }
     else if (user_select == install) { // -> install FIRM
         size_t firm_size = FileGetSize(file_path);
         u32 slots = 1;
         if (GetNandPartitionInfo(NULL, NP_TYPE_FIRM, NP_SUBTYPE_CTR, 1, NAND_SYSNAND) == 0) {
-            optionstr[0] = "Install to FIRM0";
-            optionstr[1] = "Install to FIRM1";
-            optionstr[2] = "Install to both";
+            optionstr[0] = "FIRM0にインストール";
+            optionstr[1] = "FIRM1にインストール";
+            optionstr[2] = "両方にインストール";
             // this only works up to FIRM1
-            slots = ShowSelectPrompt(3, optionstr, "%s (%dkB)\nInstall to SysNAND?", pathstr, firm_size / 1024);
-        } else slots = ShowPrompt(true, "%s (%dkB)\nInstall to SysNAND?", pathstr, firm_size / 1024) ? 1 : 0;
-        if (slots) ShowPrompt(false, "%s (%dkB)\nInstall %s", pathstr, firm_size / 1024,
-            (SafeInstallFirm(file_path, slots) == 0) ? "success" : "failed!");
+            slots = ShowSelectPrompt(3, optionstr, "%s (%dkB)\nSysNANDにインストールしますか?", pathstr, firm_size / 1024);
+        } else slots = ShowPrompt(true, "%s (%dkB)\nSysNANDにインストールしますか?", pathstr, firm_size / 1024) ? 1 : 0;
+        if (slots) ShowPrompt(false, "%s (%dkB)\nインストール %s", pathstr, firm_size / 1024,
+            (SafeInstallFirm(file_path, slots) == 0) ? "成功" : "失敗!");
         return 0;
     }
     else if (user_select == boot) { // -> boot FIRM
@@ -2116,8 +2116,8 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
         return 0;
     }
     else if (user_select == script) { // execute script
-        if (ShowPrompt(true, "%s\nWarning: Do not run scripts\nfrom untrusted sources.\n \nExecute script?", pathstr))
-            ShowPrompt(false, "%s\nScript execute %s", pathstr, ExecuteGM9Script(file_path) ? "success" : "failure");
+        if (ShowPrompt(true, "%s\n警告: 信頼できないソースから\nスクリプトを実行しないでください。\n \nスクリプトを実行しますか？", pathstr))
+            ShowPrompt(false, "%s\nスクリプトの実行 %s", pathstr, ExecuteGM9Script(file_path) ? "成功" : "失敗");
         GetDirContents(current_dir, current_path);
         ClearScreenF(true, true, COLOR_STD_BG);
         return 0;
@@ -2133,21 +2133,21 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
     }
     else if (user_select == view) { // view gfx
         if (FileGraphicsViewer(file_path) != 0)
-            ShowPrompt(false, "%s\nError: Cannot view file\n(Hint: maybe it's too big)", pathstr);
+            ShowPrompt(false, "%s\nエラー: ファイルを表示できません\n(ヒント: 大きすぎるかもしれない)", pathstr);
         return 0;
     }
     else if (user_select == agbexport) { // export GBA VC save
         if (DumpGbaVcSavegame(file_path) == 0)
-            ShowPrompt(false, "Savegame dumped to " OUTPUT_PATH ".");
-        else ShowPrompt(false, "Savegame dump failed!");
+            ShowPrompt(false, "ゲームのセーブをダンプ " OUTPUT_PATH ".");
+        else ShowPrompt(false, "ゲームのセーブのダンプに失敗しました!");
         return 0;
     }
     else if (user_select == agbimport) { // import GBA VC save
         if (clipboard->n_entries != 1) {
-            ShowPrompt(false, "GBA VC savegame has to\nbe in the clipboard.");
+            ShowPrompt(false, "GBA VCのセーブは、\nクリップボードにある必要があります。");
         } else {
-            ShowPrompt(false, "Savegame inject %s.",
-                (InjectGbaVcSavegame(file_path, clipboard->entry[0].path) == 0) ? "success" : "failed!");
+            ShowPrompt(false, "ゲームセーブ導入 %s.",
+                (InjectGbaVcSavegame(file_path, clipboard->entry[0].path) == 0) ? "成功" : "失敗!");
             clipboard->n_entries = 0;
         }
         return 0;
@@ -2155,10 +2155,10 @@ u32 FileHandlerMenu(char* current_path, u32* cursor, u32* scroll, PaneData** pan
     else if (user_select == setup) { // set as default (font)
         if (filetype & FONT_RIFF) {
             if (SetAsSupportFile("font.frf", file_path))
-                ShowPrompt(false, "%s\nFont will be active on next boot", pathstr);
+                ShowPrompt(false, "%s\n次回の起動時にフォントが有効になります", pathstr);
         } else if (filetype & FONT_PBM) {
             if (SetAsSupportFile("font.pbm", file_path))
-                ShowPrompt(false, "%s\nFont will be active on next boot", pathstr);
+                ShowPrompt(false, "%s\n次回の起動時にフォントが有効になります。", pathstr);
         }
         return 0;
     }
@@ -2171,7 +2171,7 @@ u32 HomeMoreMenu(char* current_path) {
     if (GetNandPartitionInfo(&np_info, NP_TYPE_BONUS, NP_SUBTYPE_CTR, 0, NAND_SYSNAND) != 0) np_info.count = 0;
 
     const char* optionstr[8];
-    const char* promptstr = "HOME more... menu.\nSelect action:";
+    const char* promptstr = "HOME その他... メニュー.\nアクションを選択:";
     u32 n_opt = 0;
     int sdformat = ++n_opt;
     int bonus = (np_info.count > 0x2000) ? (int) ++n_opt : -1; // 4MB minsize
@@ -2184,16 +2184,16 @@ u32 HomeMoreMenu(char* current_path) {
     int sysinfo = ++n_opt;
     int readme = (FindVTarFileInfo(VRAM0_README_MD, NULL)) ? (int) ++n_opt : -1;
 
-    if (sdformat > 0) optionstr[sdformat - 1] = "SD format menu";
-    if (bonus > 0) optionstr[bonus - 1] = "Bonus drive setup";
-    if (multi > 0) optionstr[multi - 1] = "Switch EmuNAND";
-    if (bsupport > 0) optionstr[bsupport - 1] = "Build support files";
-    if (hsrestore > 0) optionstr[hsrestore - 1] = "Restore H&S";
-    if (clock > 0) optionstr[clock - 1] = "Set RTC date&time";
-    if (bright > 0) optionstr[bright - 1] = "Configure brightness";
-    if (calib > 0) optionstr[calib - 1] = "Calibrate touchscreen";
-    if (sysinfo > 0) optionstr[sysinfo - 1] = "System info";
-    if (readme > 0) optionstr[readme - 1] = "Show ReadMe";
+    if (sdformat > 0) optionstr[sdformat - 1] = "SDカードフォーマットメニュー";
+    if (bonus > 0) optionstr[bonus - 1] = "Bonusドライブセットアップ";
+    if (multi > 0) optionstr[multi - 1] = "EmuNAND切り替え";
+    if (bsupport > 0) optionstr[bsupport - 1] = "サポートファイルの構築";
+    if (hsrestore > 0) optionstr[hsrestore - 1] = "H&Sをリストア";
+    if (clock > 0) optionstr[clock - 1] = "RTCの日付と時刻を設定";
+    if (bright > 0) optionstr[bright - 1] = "明るさを設定";
+    if (calib > 0) optionstr[calib - 1] = "タッチスクリーンのキャリブレーション";
+    if (sysinfo > 0) optionstr[sysinfo - 1] = "システム情報";
+    if (readme > 0) optionstr[readme - 1] = "ReadMeを表示";
 
     int user_select = ShowSelectPrompt(n_opt, optionstr, promptstr);
     if (user_select == sdformat) { // format SD card
@@ -2206,7 +2206,7 @@ u32 HomeMoreMenu(char* current_path) {
         DeinitSDCardFS();
         if ((SdFormatMenu(slabel) == 0) || sd_state) {;
             while (!InitSDCardFS() &&
-                ShowPrompt(true, "Initializing SD card failed! Retry?"));
+                ShowPrompt(true, "SDカードの初期化に失敗しました! 再実行しますか?"));
         }
         ClearScreenF(true, true, COLOR_STD_BG);
         AutoEmuNandBase(true);
@@ -2217,13 +2217,13 @@ u32 HomeMoreMenu(char* current_path) {
     else if (user_select == bonus) { // setup bonus drive
         if (clipboard->n_entries && (DriveType(clipboard->entry[0].path) & (DRV_BONUS|DRV_IMAGE)))
             clipboard->n_entries = 0; // remove bonus drive clipboard entries
-        if (!SetupBonusDrive()) ShowPrompt(false, "Setup failed!");
+        if (!SetupBonusDrive()) ShowPrompt(false, "セットアップ失敗!");
         ClearScreenF(true, true, COLOR_STD_BG);
         GetDirContents(current_dir, current_path);
         return 0;
     }
     else if (user_select == multi) { // switch EmuNAND offset
-        while (ShowPrompt(true, "Current EmuNAND offset is %06X.\nSwitch to next offset?", GetEmuNandBase())) {
+        while (ShowPrompt(true, "現在のEmuNANDのオフセットは %06Xです.\n次のオフセットに切り替えますか?", GetEmuNandBase())) {
             if (clipboard->n_entries && (DriveType(clipboard->entry[0].path) & DRV_EMUNAND))
                 clipboard->n_entries = 0; // remove EmuNAND clipboard entries
             DismountDriveType(DRV_EMUNAND);
@@ -2237,9 +2237,9 @@ u32 HomeMoreMenu(char* current_path) {
         bool tik_enc_sys = false;
         bool tik_enc_emu = false;
         if (BuildTitleKeyInfo(NULL, false, false) == 0) {
-            ShowString("Building " TIKDB_NAME_ENC " (SysNAND)...");
+            ShowString("構築 " TIKDB_NAME_ENC " (SysNAND)...");
             tik_enc_sys = (BuildTitleKeyInfo("1:/dbs/ticket.db", false, false) == 0);
-            ShowString("Building " TIKDB_NAME_ENC " (EmuNAND)...");
+            ShowString("構築 " TIKDB_NAME_ENC " (EmuNAND)...");
             tik_enc_emu = (BuildTitleKeyInfo("4:/dbs/ticket.db", false, false) == 0);
             if (!tik_enc_sys || BuildTitleKeyInfo(NULL, false, true) != 0)
                 tik_enc_sys = tik_enc_emu = false;
@@ -2247,9 +2247,9 @@ u32 HomeMoreMenu(char* current_path) {
         bool tik_dec_sys = false;
         bool tik_dec_emu = false;
         if (BuildTitleKeyInfo(NULL, true, false) == 0) {
-            ShowString("Building " TIKDB_NAME_DEC " (SysNAND)...");
+            ShowString("構築 " TIKDB_NAME_DEC " (SysNAND)...");
             tik_dec_sys = (BuildTitleKeyInfo("1:/dbs/ticket.db", true, false) == 0);
-            ShowString("Building " TIKDB_NAME_DEC " (EmuNAND)...");
+            ShowString("構築 " TIKDB_NAME_DEC " (EmuNAND)...");
             tik_dec_emu = (BuildTitleKeyInfo("4:/dbs/ticket.db", true, false) == 0);
             if (!tik_dec_sys || BuildTitleKeyInfo(NULL, true, true) != 0)
                 tik_dec_sys = tik_dec_emu = false;
@@ -2257,17 +2257,17 @@ u32 HomeMoreMenu(char* current_path) {
         bool seed_sys = false;
         bool seed_emu = false;
         if (BuildSeedInfo(NULL, false) == 0) {
-            ShowString("Building " SEEDINFO_NAME " (SysNAND)...");
+            ShowString("構築 " SEEDINFO_NAME " (SysNAND)...");
             seed_sys = (BuildSeedInfo("1:", false) == 0);
-            ShowString("Building " SEEDINFO_NAME " (EmuNAND)...");
+            ShowString("構築 " SEEDINFO_NAME " (EmuNAND)...");
             seed_emu = (BuildSeedInfo("4:", false) == 0);
             if (!seed_sys || BuildSeedInfo(NULL, true) != 0)
                 seed_sys = seed_emu = false;
         }
-        ShowPrompt(false, "Built in " OUTPUT_PATH ":\n \n%18.18-s %s\n%18.18-s %s\n%18.18-s %s",
-            TIKDB_NAME_ENC, tik_enc_sys ? tik_enc_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "Failed",
-            TIKDB_NAME_DEC, tik_dec_sys ? tik_dec_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "Failed",
-            SEEDINFO_NAME, seed_sys ? seed_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "Failed");
+        ShowPrompt(false, "内蔵 " OUTPUT_PATH ":\n \n%18.18-s %s\n%18.18-s %s\n%18.18-s %s",
+            TIKDB_NAME_ENC, tik_enc_sys ? tik_enc_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "失敗",
+            TIKDB_NAME_DEC, tik_dec_sys ? tik_dec_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "失敗",
+            SEEDINFO_NAME, seed_sys ? seed_emu ? "OK (Sys&Emu)" : "OK (Sys)" : "失敗");
         GetDirContents(current_dir, current_path);
         return 0;
     }
@@ -2275,8 +2275,8 @@ u32 HomeMoreMenu(char* current_path) {
         n_opt = 0;
         int sys = (CheckHealthAndSafetyInject("1:") == 0) ? (int) ++n_opt : -1;
         int emu = (CheckHealthAndSafetyInject("4:") == 0) ? (int) ++n_opt : -1;
-        if (sys > 0) optionstr[sys - 1] = "Restore H&S (SysNAND)";
-        if (emu > 0) optionstr[emu - 1] = "Restore H&S (EmuNAND)";
+        if (sys > 0) optionstr[sys - 1] = "H&Sをリストア (SysNAND)";
+        if (emu > 0) optionstr[emu - 1] = "H&Sをリストア (EmuNAND)";
         user_select = (n_opt > 1) ? ShowSelectPrompt(n_opt, optionstr, promptstr) : n_opt;
         if (user_select > 0) {
             InjectHealthAndSafety(NULL, (user_select == sys) ? "1:" : "4:");
@@ -2287,11 +2287,11 @@ u32 HomeMoreMenu(char* current_path) {
     else if (user_select == clock) { // RTC clock setter
         DsTime dstime;
         get_dstime(&dstime);
-        if (ShowRtcSetterPrompt(&dstime, "Set RTC date&time:")) {
+        if (ShowRtcSetterPrompt(&dstime, "RTCの日付と時刻を設定:")) {
             char timestr[32];
             set_dstime(&dstime);
             GetTimeString(timestr, true, true);
-            ShowPrompt(false, "New RTC date&time is:\n%s\n \nHint: HOMEMENU time needs\nmanual adjustment after\nsetting the RTC.",
+            ShowPrompt(false, "新しいRTCの日付と時刻は:\n%s\n \nヒント: ホームメニューのの時刻は\nRTC設定後、\n手動で調整する必要があります。",
                 timestr);
         }
         return 0;
@@ -2306,8 +2306,8 @@ u32 HomeMoreMenu(char* current_path) {
         return 0;
     }
     else if (user_select == calib) { // touchscreen calibration
-        ShowPrompt(false, "Touchscreen calibration %s!",
-            (ShowTouchCalibrationDialog()) ? "success" : "failed");
+        ShowPrompt(false, "タッチスクリーンキャリブレーション %s!",
+            (ShowTouchCalibrationDialog()) ? "成功" : "失敗　　　　　　　　　　　");
         return 0;
     }
     else if (user_select == sysinfo) { // Myria's system info
@@ -2321,7 +2321,7 @@ u32 HomeMoreMenu(char* current_path) {
     else if (user_select == readme) { // Display GodMode9 readme
         u64 README_md_size;
         char* README_md = FindVTarFileInfo(VRAM0_README_MD, &README_md_size);
-        MemToCViewer(README_md, README_md_size, "GodMode9 ReadMe Table of Contents");
+        MemToCViewer(README_md, README_md_size, "GodMode9 ReadMe 目次");
         return 0;
     } else return 1;
 
@@ -2350,19 +2350,19 @@ u32 GodMode(int entrypoint) {
     if (bootloader) { // check for FIRM in FCRAM, but prevent bootloops
         void* addr = (void*) __FIRMRAM_ADDR;
         u32 firm_size = GetFirmSize((FirmHeader*) addr);
-        memcpy(firm_in_mem, "NOPE", 4); // overwrite header to prevent bootloops
+        memcpy(firm_in_mem, "その他", 4); // overwrite header to prevent bootloops
         if (firm_size && (firm_size <= (__FIRMRAM_END - __FIRMRAM_ADDR))) {
             memcpy(firm_in_mem, addr, firm_size);
-            memcpy(addr, "NOPE", 4); // to prevent bootloops
+            memcpy(addr, "その他", 4); // to prevent bootloops
         }
     }
 
     // get mode string for splash screen
     const char* disp_mode = NULL;
-    if (bootloader) disp_mode = "bootloader mode\nR+LEFT for menu";
-    else if (!IS_UNLOCKED && (entrypoint == ENTRY_NANDBOOT)) disp_mode = "oldloader mode";
-    else if (entrypoint == ENTRY_NTRBOOT) disp_mode = "ntrboot mode";
-    else if (entrypoint == ENTRY_UNKNOWN) disp_mode = "unknown mode";
+    if (bootloader) disp_mode = "bootloaderモード\nR+LEFT　メニュー";
+    else if (!IS_UNLOCKED && (entrypoint == ENTRY_NANDBOOT)) disp_mode = "oldloaderモード";
+    else if (entrypoint == ENTRY_NTRBOOT) disp_mode = "ntrbootモード";
+    else if (entrypoint == ENTRY_UNKNOWN) disp_mode = "不明モード";
 
     bool show_splash = true;
     #ifdef SALTMODE
@@ -2409,11 +2409,11 @@ u32 GodMode(int entrypoint) {
     // check for embedded essential backup
     if (((entrypoint == ENTRY_NANDBOOT) || (entrypoint == ENTRY_B9S)) &&
         !PathExist("S:/essential.exefs") && CheckGenuineNandNcsd() &&
-        ShowPrompt(true, "Essential files backup not found.\nCreate one now?")) {
+        ShowPrompt(true, "必須ファイルのバックアップが見つかりません。\n作成しますか?")) {
         if (EmbedEssentialBackup("S:/nand.bin") == 0) {
             u32 flags = BUILD_PATH | SKIP_ALL;
             PathCopy(OUTPUT_PATH, "S:/essential.exefs", &flags);
-            ShowPrompt(false, "Backup embedded in SysNAND\nand written to " OUTPUT_PATH ".");
+            ShowPrompt(false, "バックアップをSysNANDに組み込み、書き込みを行う。 " OUTPUT_PATH ".");
         }
     }
 
@@ -2422,18 +2422,18 @@ u32 GodMode(int entrypoint) {
         DsTime dstime;
         get_dstime(&dstime);
         if ((DSTIMEGET(&dstime, bcd_Y) < 18) &&
-             ShowPrompt(true, "RTC date&time seems to be\nwrong. Set it now?") &&
-             ShowRtcSetterPrompt(&dstime, "Set RTC date&time:")) {
+             ShowPrompt(true, "RTCの日付と時間が\n間違っているようです。 セットしますか?") &&
+             ShowRtcSetterPrompt(&dstime, "RTCの日付と時刻を設定する:")) {
             char timestr[32];
             set_dstime(&dstime);
             GetTimeString(timestr, true, true);
-            ShowPrompt(false, "New RTC date&time is:\n%s\n \nHint: HOMEMENU time needs\nmanual adjustment after\nsetting the RTC.", timestr);
+            ShowPrompt(false, "新しいRTCの日付と時刻は:\n%s\n \nヒント: ホームメニューの時刻は、\nRTCを設定した後、\n手動で調整する必要があります。", timestr);
         }
     }
 
     #if defined(SALTMODE)
     show_splash = bootmenu = (bootloader && CheckButton(BOOTMENU_KEY));
-    if (show_splash) SplashInit("saltmode");
+    if (show_splash) SplashInit("ソルトモード");
     #else // standard behaviour
     bootmenu = bootmenu || (bootloader && CheckButton(BOOTMENU_KEY)); // second check for boot menu keys
     #endif
@@ -2445,17 +2445,17 @@ u32 GodMode(int entrypoint) {
         bootloader = false;
         while (HID_ReadState() & BUTTON_ANY); // wait until no buttons are pressed
         while (!bootloader && !godmode9) {
-            const char* optionstr[6] = { "Resume GodMode9", "Resume bootloader", "Select payload...", "Select script...",
-                "Poweroff system", "Reboot system" };
-            int user_select = ShowSelectPrompt(6, optionstr, FLAVOR " bootloader menu.\nSelect action:");
+            const char* optionstr[6] = { "GodMode9再開", "bootloader再開", "ペイロードを選択...", "スクリプトを選択...",
+                "電源を切る", "再起動" };
+            int user_select = ShowSelectPrompt(6, optionstr, FLAVOR " bootloaderメニュー.\nアクションを選択:");
             char loadpath[256];
             if (user_select == 1) {
                 godmode9 = true;
             } else if (user_select == 2) {
                 bootloader = true;
-            } else if ((user_select == 3) && (FileSelectorSupport(loadpath, "Bootloader payloads menu.\nSelect payload:", PAYLOADS_DIR, "*.firm"))) {
+            } else if ((user_select == 3) && (FileSelectorSupport(loadpath, "Bootloaderペイロードメニュー\nペイロードを選択:", PAYLOADS_DIR, "*.firm"))) {
                 BootFirmHandler(loadpath, false, false);
-            } else if ((user_select == 4) && (FileSelectorSupport(loadpath, "Bootloader scripts menu.\nSelect script:", SCRIPTS_DIR, "*.gm9"))) {
+            } else if ((user_select == 4) && (FileSelectorSupport(loadpath, "Bootloaderスクリプトメニュー\nスクリプトを選択:", SCRIPTS_DIR, "*.gm9"))) {
                 ExecuteGM9Script(loadpath);
             } else if (user_select == 5) {
                 exit_mode = GODMODE_EXIT_POWEROFF;
@@ -2476,7 +2476,7 @@ u32 GodMode(int entrypoint) {
         for (u32 i = 0; i < sizeof(bootfirm_paths) / sizeof(char*); i++) {
             BootFirmHandler(bootfirm_paths[i], false, (BOOTFIRM_TEMPS >> i) & 0x1);
         }
-        ShowPrompt(false, "No bootable FIRM found.\nNow resuming GodMode9...");
+        ShowPrompt(false, "起動可能なFIRMが見つかりません。\nGodMode9を再開しますか...");
         godmode9 = true;
     }
 
@@ -2485,7 +2485,7 @@ u32 GodMode(int entrypoint) {
         clipboard = (DirStruct*) malloc(sizeof(DirStruct));
         panedata = (PaneData*) malloc(N_PANES * sizeof(PaneData));
         if (!current_dir || !clipboard || !panedata) {
-            ShowPrompt(false, "Out of memory."); // just to be safe
+            ShowPrompt(false, "メモリ不足。"); // just to be safe
             return exit_mode;
         }
 
@@ -2499,7 +2499,7 @@ u32 GodMode(int entrypoint) {
     while (godmode9) { // this is the main loop
         // basic sanity checking
         if (!current_dir->n_entries) { // current dir is empty -> revert to root
-            ShowPrompt(false, "Invalid directory object");
+            ShowPrompt(false, "無効なディレクトリオブジェクト");
             *current_path = '\0';
             SetTitleManagerMode(false);
             DeinitExtFS(); // deinit and...
@@ -2507,7 +2507,7 @@ u32 GodMode(int entrypoint) {
             GetDirContents(current_dir, current_path);
             cursor = 0;
             if (!current_dir->n_entries) { // should not happen, if it does fail gracefully
-                ShowPrompt(false, "Invalid root directory.");
+                ShowPrompt(false, "ルートディレクトリが無効です。");
                 return exit_mode;
             }
         }
@@ -2526,7 +2526,7 @@ u32 GodMode(int entrypoint) {
 
         // check write permissions
         if (~last_write_perm & GetWritePermissions()) {
-            if (ShowPrompt(true, "Write permissions were changed.\nRelock them?")) SetWritePermissions(last_write_perm, false);
+            if (ShowPrompt(true, "書き込み権限を変更しました。\n再ロックしますか？")) SetWritePermissions(last_write_perm, false);
             last_write_perm = GetWritePermissions();
             continue;
         }
@@ -2551,12 +2551,12 @@ u32 GodMode(int entrypoint) {
                 int dirnfo = ++n_opt;
                 int stdcpy = (*current_path && strncmp(current_path, OUTPUT_PATH, 256) != 0) ? ++n_opt : -1;
                 int rawdump = (!*current_path && (DriveType(curr_entry->path) & DRV_CART)) ? ++n_opt : -1;
-                if (tman > 0) optionstr[tman-1] = "Open title manager";
-                if (srch_f > 0) optionstr[srch_f-1] = "Search for files...";
-                if (fixcmac > 0) optionstr[fixcmac-1] = "Fix CMACs for drive";
-                if (dirnfo > 0) optionstr[dirnfo-1] = (*current_path) ? "Show directory info" : "Show drive info";
-                if (stdcpy > 0) optionstr[stdcpy-1] = "Copy to " OUTPUT_PATH;
-                if (rawdump > 0) optionstr[rawdump-1] = "Dump to " OUTPUT_PATH;
+                if (tman > 0) optionstr[tman-1] = "タイトルマネージャーを開く";
+                if (srch_f > 0) optionstr[srch_f-1] = "ファイルを検索...";
+                if (fixcmac > 0) optionstr[fixcmac-1] = "ドライブ用CMACの修正";
+                if (dirnfo > 0) optionstr[dirnfo-1] = (*current_path) ? "ディレクトリ情報を表示する" : "ドライブ情報を表示する";
+                if (stdcpy > 0) optionstr[stdcpy-1] = "コピー " OUTPUT_PATH;
+                if (rawdump > 0) optionstr[rawdump-1] = "ダンプ " OUTPUT_PATH;
                 char namestr[UTF_BUFFER_BYTESIZE(32)];
                 TruncateString(namestr, (*current_path) ? curr_entry->path : curr_entry->name, 32, 8);
                 int user_select = ShowSelectPrompt(n_opt, optionstr, "%s", namestr);
@@ -2567,26 +2567,26 @@ u32 GodMode(int entrypoint) {
                         GetDirContents(current_dir, current_path);
                         cursor = 1;
                         scroll = 0;
-                    } else ShowPrompt(false, "Failed setting up title manager!");
+                    } else ShowPrompt(false, "タイトルマネージャの設定に失敗しました!");
                 } else if (user_select == srch_f) {
                     char searchstr[256];
                     snprintf(searchstr, 256, "*");
                     TruncateString(namestr, curr_entry->name, 20, 8);
-                    if (ShowKeyboardOrPrompt(searchstr, 256, "Search %s?\nEnter search below.", namestr)) {
+                    if (ShowKeyboardOrPrompt(searchstr, 256, "検索しますか? %s　\n以下に検索を入力してください。", namestr)) {
                         SetFSSearch(searchstr, curr_entry->path);
                         snprintf(current_path, 256, "Z:");
                         GetDirContents(current_dir, current_path);
-                        if (current_dir->n_entries) ShowPrompt(false, "Found %lu results.", current_dir->n_entries - 1);
+                        if (current_dir->n_entries) ShowPrompt(false, " %lu の結果が見つかりました。", current_dir->n_entries - 1);
                         cursor = 1;
                         scroll = 0;
                     }
                 } else if (user_select == fixcmac) {
                     RecursiveFixFileCmac(curr_entry->path);
-                    ShowPrompt(false, "Fix CMACs for drive finished.");
+                    ShowPrompt(false, "ドライブ終了時のCMACを修正しました。");
                 } else if (user_select == dirnfo) {
                     if (DirFileAttrMenu(curr_entry->path, curr_entry->name)) {
-                        ShowPrompt(false, "Failed to analyze %s\n",
-                            (current_path[0] == '\0') ? "drive" : "dir"
+                        ShowPrompt(false, "解析に失敗しました %s\n",
+                            (current_path[0] == '\0') ? "ドライブ" : "ディレクトリ"
                         );
                     }
                 } else if (user_select == stdcpy) {
@@ -2597,7 +2597,7 @@ u32 GodMode(int entrypoint) {
             } else { // one level up
                 u32 user_select = 1;
                 if (curr_drvtype & DRV_SEARCH) { // special menu for search drive
-                    static const char* optionstr[2] = { "Open this folder", "Open containing folder" };
+                    static const char* optionstr[2] = { "このフォルダを開く", "保存しているフォルダを開く" };
                     char pathstr[UTF_BUFFER_BYTESIZE(32)];
                     TruncateString(pathstr, curr_entry->path, 32, 8);
                     user_select = ShowSelectPrompt(2, optionstr, "%s", pathstr);
@@ -2644,7 +2644,7 @@ u32 GodMode(int entrypoint) {
         } else if (switched && (pad_state & BUTTON_B)) { // unmount SD card
             if (!CheckSDMountState()) {
                 while (!InitSDCardFS() &&
-                    ShowPrompt(true, "Initialising SD card failed! Retry?"));
+                    ShowPrompt(true, "SDカードの初期化に失敗しました。再試行しますか？"));
             } else {
                 DeinitSDCardFS();
                 if (clipboard->n_entries && !PathExist(clipboard->entry[0].path))
@@ -2711,7 +2711,7 @@ u32 GodMode(int entrypoint) {
             }
         } else if (!switched) { // standard unswitched command set
             if ((curr_drvtype & DRV_VIRTUAL) && (pad_state & BUTTON_X) && (*current_path != 'T')) {
-                ShowPrompt(false, "Not allowed in virtual path");
+                ShowPrompt(false, "仮想パスでは不可");
             } else if (pad_state & BUTTON_X) { // delete a file
                 u32 n_marked = 0;
                 if (curr_entry->marked) {
@@ -2719,22 +2719,22 @@ u32 GodMode(int entrypoint) {
                         if (current_dir->entry[c].marked) n_marked++;
                 }
                 if (n_marked) {
-                    if (ShowPrompt(true, "Delete %u path(s)?", n_marked)) {
+                    if (ShowPrompt(true, "パス %u を削除しますか?", n_marked)) {
                         u32 n_errors = 0;
-                        ShowString("Deleting files, please wait...");
+                        ShowString("ファイルを削除しています、しばらくお待ちください...");
                         for (u32 c = 0; c < current_dir->n_entries; c++)
                             if (current_dir->entry[c].marked && !PathDelete(current_dir->entry[c].path))
                                 n_errors++;
                         ClearScreenF(true, false, COLOR_STD_BG);
-                        if (n_errors) ShowPrompt(false, "Failed deleting %u/%u path(s)", n_errors, n_marked);
+                        if (n_errors) ShowPrompt(false, " %u/%u パスの削除に失敗しました。", n_errors, n_marked);
                     }
                 } else if (curr_entry->type != T_DOTDOT) {
                     char namestr[UTF_BUFFER_BYTESIZE(28)];
                     TruncateString(namestr, curr_entry->name, 28, 12);
-                    if (ShowPrompt(true, "Delete \"%s\"?", namestr)) {
-                        ShowString("Deleting files, please wait...");
+                    if (ShowPrompt(true, "削除しますか \"%s\"?", namestr)) {
+                        ShowString("ファイルを削除しています、しばらくお待ちください...");
                         if (!PathDelete(curr_entry->path))
-                            ShowPrompt(false, "Failed deleting:\n%s", namestr);
+                            ShowPrompt(false, "削除の失敗:\n%s", namestr);
                         ClearScreenF(true, false, COLOR_STD_BG);
                     }
                 }
@@ -2754,23 +2754,23 @@ u32 GodMode(int entrypoint) {
                 if (clipboard->n_entries)
                     last_clipboard_size = clipboard->n_entries;
             } else if ((curr_drvtype & DRV_SEARCH) && (pad_state & BUTTON_Y)) {
-                ShowPrompt(false, "Not allowed in search drive");
+                ShowPrompt(false, "検索ドライブでは不可");
             } else if ((curr_drvtype & DRV_GAME) && (pad_state & BUTTON_Y)) {
-                ShowPrompt(false, "Not allowed in virtual game path");
+                ShowPrompt(false, "仮想ゲームパスでは不可");
             } else if ((curr_drvtype & DRV_XORPAD) && (pad_state & BUTTON_Y)) {
-                ShowPrompt(false, "Not allowed in XORpad drive");
+                ShowPrompt(false, "XORpadドライブでは不可");
             } else if ((curr_drvtype & DRV_CART) && (pad_state & BUTTON_Y)) {
-                ShowPrompt(false, "Not allowed in gamecart drive");
+                ShowPrompt(false, "ゲームカートドライブでは不可");
             } else if (pad_state & BUTTON_Y) { // paste files
-                static const char* optionstr[2] = { "Copy path(s)", "Move path(s)" };
+                static const char* optionstr[2] = { "パスをコピー", "パスを移動" };
                 char promptstr[64];
                 u32 flags = 0;
                 u32 user_select;
                 if (clipboard->n_entries == 1) {
                     char namestr[UTF_BUFFER_BYTESIZE(20)];
                     TruncateString(namestr, clipboard->entry[0].name, 20, 12);
-                    snprintf(promptstr, 64, "Paste \"%s\" here?", namestr);
-                } else snprintf(promptstr, 64, "Paste %lu paths here?", clipboard->n_entries);
+                    snprintf(promptstr, 64, "ここに \"%s\" 貼り付けますか?", namestr);
+                } else snprintf(promptstr, 64, "ここに %lu パスを貼り付けますか?", clipboard->n_entries);
                 user_select = ((DriveType(clipboard->entry[0].path) & curr_drvtype & DRV_STDFAT)) ?
                     ShowSelectPrompt(2, optionstr, "%s", promptstr) : (ShowPrompt(true, "%s", promptstr) ? 1 : 0);
                 if (user_select) {
@@ -2781,12 +2781,12 @@ u32 GodMode(int entrypoint) {
                         if (c < clipboard->n_entries - 1) flags |= ASK_ALL;
                         if ((user_select == 1) && !PathCopy(current_path, clipboard->entry[c].path, &flags)) {
                             if (c + 1 < clipboard->n_entries) {
-                                if (!ShowPrompt(true, "Failed copying path:\n%s\nProcess remaining?", namestr)) break;
-                            } else ShowPrompt(false, "Failed copying path:\n%s", namestr);
+                                if (!ShowPrompt(true, "パスのコピーに失敗しました:\n%s\nプロセスは残っていますか？", namestr)) break;
+                            } else ShowPrompt(false, "パスのコピーに失敗しました:\n%s", namestr);
                         } else if ((user_select == 2) && !PathMove(current_path, clipboard->entry[c].path, &flags)) {
                             if (c + 1 < clipboard->n_entries) {
-                                if (!ShowPrompt(true, "Failed moving path:\n%s\nProcess remaining?", namestr)) break;
-                            } else ShowPrompt(false, "Failed moving path:\n%s", namestr);
+                                if (!ShowPrompt(true, "パスの移動に失敗しました:\n%s\nプロセスは残っていますか？", namestr)) break;
+                            } else ShowPrompt(false, "パスの移動に失敗しました:\n%s", namestr);
                         }
                     }
                     clipboard->n_entries = 0;
@@ -2796,17 +2796,17 @@ u32 GodMode(int entrypoint) {
             }
         } else { // switched command set
             if ((curr_drvtype & DRV_VIRTUAL) && (pad_state & (BUTTON_X|BUTTON_Y))) {
-                ShowPrompt(false, "Not allowed in virtual path");
+                ShowPrompt(false, "仮想パスでは不可");
             } else if ((curr_drvtype & DRV_ALIAS) && (pad_state & (BUTTON_X))) {
-                ShowPrompt(false, "Not allowed in alias path");
+                ShowPrompt(false, "エイリアスパスで使用不可");
             } else if ((pad_state & BUTTON_X) && (curr_entry->type != T_DOTDOT)) { // rename a file
                 char newname[256];
                 char namestr[UTF_BUFFER_BYTESIZE(20)];
                 TruncateString(namestr, curr_entry->name, 20, 12);
                 snprintf(newname, 255, "%s", curr_entry->name);
-                if (ShowKeyboardOrPrompt(newname, 256, "Rename %s?\nEnter new name below.", namestr)) {
+                if (ShowKeyboardOrPrompt(newname, 256, "名前を変更しますか %s?\n新しい名前を入力してください。", namestr)) {
                     if (!PathRename(curr_entry->path, newname))
-                        ShowPrompt(false, "Failed renaming path:\n%s", namestr);
+                        ShowPrompt(false, "パス名の変更に失敗しました:\n%s", namestr);
                     else {
                         GetDirContents(current_dir, current_path);
                         for (cursor = (current_dir->n_entries) ? current_dir->n_entries - 1 : 0;
@@ -2814,20 +2814,20 @@ u32 GodMode(int entrypoint) {
                     }
                 }
             } else if (pad_state & BUTTON_Y) { // create an entry
-                static const char* optionstr[] = { "Create a folder", "Create a dummy file" };
-                u32 type = ShowSelectPrompt(2, optionstr, "Create a new entry here?\nSelect type.");
+                static const char* optionstr[] = { "フォルダの作成", "ダミーファイルの作成" };
+                u32 type = ShowSelectPrompt(2, optionstr, "ここに新しいエントリーを作成しますか？\nタイプを選択。");
                 if (type) {
-                    const char* typestr = (type == 1) ? "folder" : (type == 2) ? "file" : NULL;
+                    const char* typestr = (type == 1) ? "フォルダ" : (type == 2) ? "ファイル" : NULL;
                     char ename[256];
                     u64 fsize = 0;
-                    snprintf(ename, 255, (type == 1) ? "newdir" : "dummy.bin");
-                    if ((ShowKeyboardOrPrompt(ename, 256, "Create a new %s here?\nEnter name below.", typestr)) &&
-                        ((type != 2) || ((fsize = ShowNumberPrompt(0, "Create a new %s here?\nEnter file size below.", typestr)) != (u64) -1))) {
+                    snprintf(ename, 255, (type == 1) ? "新規ディレクトリ" : "dummy.bin");
+                    if ((ShowKeyboardOrPrompt(ename, 256, "ここで新しい %s を作成しますか？\n以下に名前を入力してください。", typestr)) &&
+                        ((type != 2) || ((fsize = ShowNumberPrompt(0, "ここで新しい %s を作成しますか？\nファイルサイズを下に入力してください。", typestr)) != (u64) -1))) {
                         if (((type == 1) && !DirCreate(current_path, ename)) ||
                             ((type == 2) && !FileCreateDummy(current_path, ename, fsize))) {
                             char namestr[UTF_BUFFER_BYTESIZE(36)];
                             TruncateString(namestr, ename, 36, 12);
-                            ShowPrompt(false, "Failed creating %s:\n%s", typestr, namestr);
+                            ShowPrompt(false, "作成に失敗しました %s:\n%s", typestr, namestr);
                         } else {
                             GetDirContents(current_dir, current_path);
                             for (cursor = (current_dir->n_entries) ? current_dir->n_entries - 1 : 0;
@@ -2843,7 +2843,7 @@ u32 GodMode(int entrypoint) {
             break;
         } else if (pad_state & (BUTTON_HOME|BUTTON_POWER)) { // Home menu
             const char* optionstr[8];
-            const char* buttonstr = (pad_state & BUTTON_HOME) ? "HOME" : "POWER";
+            const char* buttonstr = (pad_state & BUTTON_HOME) ? "HOME" : "電源";
             u32 n_opt = 0;
             int poweroff = ++n_opt;
             int reboot = ++n_opt;
@@ -2852,24 +2852,24 @@ u32 GodMode(int entrypoint) {
             int scripts = ++n_opt;
             int payloads = ++n_opt;
             int more = ++n_opt;
-            if (poweroff > 0) optionstr[poweroff - 1] = "Poweroff system";
-            if (reboot > 0) optionstr[reboot - 1] = "Reboot system";
-            if (titleman > 0) optionstr[titleman - 1] = "Title manager";
-            if (brick > 0) optionstr[brick - 1] = "Brick my 3DS";
-            if (scripts > 0) optionstr[scripts - 1] = "Scripts...";
-            if (payloads > 0) optionstr[payloads - 1] = "Payloads...";
-            if (more > 0) optionstr[more - 1] = "More...";
+            if (poweroff > 0) optionstr[poweroff - 1] = "シャットダウン";
+            if (reboot > 0) optionstr[reboot - 1] = "再起動";
+            if (titleman > 0) optionstr[titleman - 1] = "タイトルマネージャー";
+            if (brick > 0) optionstr[brick - 1] = "3DSを壊す";
+            if (scripts > 0) optionstr[scripts - 1] = "スクリプト...";
+            if (payloads > 0) optionstr[payloads - 1] = "ペイロード...";
+            if (more > 0) optionstr[more - 1] = "その他...";
 
             int user_select = 0;
-            while ((user_select = ShowSelectPrompt(n_opt, optionstr, "%s button pressed.\nSelect action:", buttonstr)) &&
+            while ((user_select = ShowSelectPrompt(n_opt, optionstr, "%s ボタンが押されました。\nアクションを選択:", buttonstr)) &&
                 (user_select != poweroff) && (user_select != reboot)) {
                 char loadpath[256];
                 if ((user_select == more) && (HomeMoreMenu(current_path) == 0)) break; // more... menu
                 else if (user_select == titleman) {
                     static const char* tmoptionstr[4] = {
-                        "[A:] SD CARD",
+                        "[A:] SDカード",
                         "[1:] NAND / TWL",
-                        "[B:] SD CARD",
+                        "[B:] SDカード",
                         "[4:] NAND / TWL"
                     };
                     static const char* tmpaths[4] = {
@@ -2881,7 +2881,7 @@ u32 GodMode(int entrypoint) {
                     u32 tmnum = 2;
                     if (!CheckSDMountState() || (tmnum = ShowSelectPrompt(
                         (CheckVirtualDrive("E:")) ? 4 : 2, tmoptionstr,
-                        "Title manager menu.\nSelect titles source:", buttonstr))) {
+                        "タイトルマネージャーメニュー\nタイトルソースの選択:", buttonstr))) {
                         const char* tpath = tmpaths[tmnum-1];
                         if (InitImgFS(tpath)) {
                             SetTitleManagerMode(true);
@@ -2891,20 +2891,20 @@ u32 GodMode(int entrypoint) {
                             cursor = 1;
                             scroll = 0;
                             break;
-                        } else ShowPrompt(false, "Failed setting up title manager!");
+                        } else ShowPrompt(false, "タイトルマネージャの設定に失敗しました!");
                     }
                 } else if (user_select == scripts) {
                     if (!CheckSupportDir(SCRIPTS_DIR)) {
-                        ShowPrompt(false, "Scripts directory not found.\n(default path: 0:/gm9/" SCRIPTS_DIR ")");
-                    } else if (FileSelectorSupport(loadpath, "HOME scripts... menu.\nSelect script:", SCRIPTS_DIR, "*.gm9")) {
+                        ShowPrompt(false, "Scriptsディレクトリが見つかりません。\n(default path: 0:/gm9/" SCRIPTS_DIR ")");
+                    } else if (FileSelectorSupport(loadpath, "HOME スクリプト... メニュー.\nスクリプトを選択:", SCRIPTS_DIR, "*.gm9")) {
                         ExecuteGM9Script(loadpath);
                         GetDirContents(current_dir, current_path);
                         ClearScreenF(true, true, COLOR_STD_BG);
                         break;
                     }
                 } else if (user_select == payloads) {
-                    if (!CheckSupportDir(PAYLOADS_DIR)) ShowPrompt(false, "Payloads directory not found.\n(default path: 0:/gm9/" PAYLOADS_DIR ")");
-                    else if (FileSelectorSupport(loadpath, "HOME payloads... menu.\nSelect payload:", PAYLOADS_DIR, "*.firm"))
+                    if (!CheckSupportDir(PAYLOADS_DIR)) ShowPrompt(false, "Payloadsディレクトリが見つかりません。\n(デフォルトパス: 0:/gm9/" PAYLOADS_DIR ")");
+                    else if (FileSelectorSupport(loadpath, "HOME ペイロード... メニュー.\nペイロードを選択:", PAYLOADS_DIR, "*.firm"))
                         BootFirmHandler(loadpath, false, false);
                 } else if (user_select == brick) {
                     Paint9(); // hiding a secret here
@@ -2923,17 +2923,17 @@ u32 GodMode(int entrypoint) {
         } else if (pad_state & (CART_INSERT|CART_EJECT)) {
             if (!InitVCartDrive() && (pad_state & CART_INSERT) &&
                 (curr_drvtype & DRV_CART)) // reinit virtual cart drive
-                ShowPrompt(false, "Cart init failed!");
+                ShowPrompt(false, "カートの起動に失敗しました!");
             if (!(*current_path) || (curr_drvtype & DRV_CART))
                 GetDirContents(current_dir, current_path); // refresh dir contents
         } else if (pad_state & SD_INSERT) {
-            while (!InitSDCardFS() && ShowPrompt(true, "Initialising SD card failed! Retry?"));
+            while (!InitSDCardFS() && ShowPrompt(true, "SDカードの初期化に失敗しました。再試行しますか？"));
             ClearScreenF(true, true, COLOR_STD_BG);
             AutoEmuNandBase(true);
             InitExtFS();
             GetDirContents(current_dir, current_path);
         } else if ((pad_state & SD_EJECT) && CheckSDMountState()) {
-            ShowPrompt(false, "!Unexpected SD card removal!\n \nTo prevent data loss, unmount\nbefore ejecting the SD card.");
+            ShowPrompt(false, "!SDカードの予期せぬ取り外し!\n \nデータの損失を防ぐため、SDカードを取り出す前に\nアンマウントしてください。");
             DeinitExtFS();
             DeinitSDCardFS();
             InitExtFS();
@@ -2959,7 +2959,7 @@ u32 GodMode(int entrypoint) {
 u32 ScriptRunner(int entrypoint) {
     // init font and show splash
     if (!SetFont(NULL, 0)) return GODMODE_EXIT_POWEROFF;
-    SplashInit("scriptrunner mode");
+    SplashInit("scriptrunnerモード");
     u64 timer = timer_start();
 
     InitSDCardFS();
@@ -2986,9 +2986,9 @@ u32 ScriptRunner(int entrypoint) {
         ExecuteGM9Script("V:/" VRAM0_AUTORUN_GM9);
     } else if (PathExist("V:/" VRAM0_SCRIPTS)) {
         char loadpath[256];
-        if (FileSelector(loadpath, FLAVOR " scripts menu.\nSelect script:", "V:/" VRAM0_SCRIPTS, "*.gm9", HIDE_EXT, false))
+        if (FileSelector(loadpath, FLAVOR " スクリプトメニュー\nスクリプトを選択:", "V:/" VRAM0_SCRIPTS, "*.gm9", HIDE_EXT, false))
             ExecuteGM9Script(loadpath);
-    } else ShowPrompt(false, "Compiled as script autorunner\nbut no script provided.\n \nDerp!");
+    } else ShowPrompt(false, "スクリプトがコンパイルされましたが、\n　スクリプトが提供されていない。　\n \nDerp!");
 
     // deinit
     DeinitExtFS();
